@@ -2,34 +2,23 @@
 <html lang="ko" class="transition-colors duration-200">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TabPlanner Pro - 프리미엄 태블릿 스마트 다이어리</title>
-    
-    <!-- 모바일/태블릿 홈 화면 바로가기(PWA) 지원을 위한 메타 태그 -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="TabPlanner">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#4f46e5">
-    
-    <!-- 홈 화면 추가 시 표시되는 고품질 프리미엄 그라데이션 앱 아이콘 -->
-    <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=180&h=180&q=80">
-    <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=32&h=32&q=80">
-
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* 시스템 스크롤바 방지 및 터치 최적화 */
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-        }
+        /* 터치 스크롤 방지 및 스타일러스 펜 최적화 */
         .canvas-container {
             touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        /* 안드로이드 GPU 가속 성능 향상 */
+        canvas {
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
         }
         /* 스크롤바 커스텀 */
         ::-webkit-scrollbar {
@@ -78,6 +67,24 @@
             background-image: radial-gradient(rgba(255,255,255,0.12) 1.2px, transparent 1.2px);
         }
 
+        /* 세로 모드(태블릿/모바일) 대대적인 레이아웃 개선 */
+        @media (max-width: 1023px) {
+            #calendarSidebar {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 45;
+                box-shadow: 15px 0 30px -5px rgba(0, 0, 0, 0.15);
+                transform: translateX(-100%);
+                width: 85%;
+                max-width: 420px;
+            }
+            #calendarSidebar.sidebar-active {
+                transform: translateX(0);
+            }
+        }
+
         /* 인쇄 최적화 스타일 */
         @media print {
             body * {
@@ -106,38 +113,35 @@
         }
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans h-screen flex flex-col antialiased transition-colors duration-200 overflow-hidden">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased transition-colors duration-200 overflow-hidden">
 
-    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 py-2.5 sm:px-6 flex flex-wrap items-center justify-between gap-4 shrink-0">
+    <!-- 상단 헤더 -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4 shrink-0">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-xl">
-                <i data-lucide="calendar-range" class="w-6 h-6"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">TabPlanner Pro</h1>
-                    <span class="px-2 py-0.5 text-[9px] font-black bg-indigo-600 text-white rounded-full uppercase tracking-wider">AI PWA Edition</span>
+            <!-- 달력 토글 컨트롤러 (세로 모드 최적화 지원용) -->
+            <button onclick="toggleSidebar()" class="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-slate-800 dark:text-indigo-400 dark:hover:bg-slate-700 rounded-xl transition flex items-center gap-1.5" title="일정 달력 열기/닫기">
+                <i data-lucide="sidebar" class="w-5 h-5"></i>
+                <span class="text-xs font-bold hidden md:inline">달력 제어</span>
+            </button>
+            
+            <div class="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
+
+            <div class="flex items-center gap-2">
+                <div class="p-1 bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-lg hidden sm:block">
+                    <i data-lucide="calendar-range" class="w-5 h-5"></i>
                 </div>
-                <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">루틴, 업무, 기분까지 챙기는 태블릿 올인원 다이어리</p>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="text-base font-bold text-slate-900 dark:text-white leading-tight">TabPlanner Pro</h1>
+                        <span class="px-1.5 py-0.5 text-[8px] font-black bg-indigo-600 text-white rounded-full uppercase tracking-wider">S-Pen & AI</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">태블릿 필기 다이어리</p>
+                </div>
             </div>
         </div>
         
         <!-- 상단 유틸리티 및 다크모드 제어 -->
         <div class="flex items-center gap-2 flex-wrap">
-            <!-- 세로 모드 패널 퀵 스위치 버튼 (태블릿 세로 이하 화면에서만 표시) -->
-            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl lg:hidden" id="portraitViewSwitcher">
-                <button onclick="togglePortraitView('calendar')" id="btnViewCalendar" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition">
-                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> 캘린더
-                </button>
-                <button onclick="togglePortraitView('workspace')" id="btnViewWorkspace" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition">
-                    <i data-lucide="layout-template" class="w-3.5 h-3.5"></i> 작업대
-                </button>
-            </div>
-
-            <button onclick="openInstallModal()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-xl transition" title="태블릿 홈화면에 앱으로 등록">
-                <i data-lucide="smartphone" class="w-4 h-4"></i>
-                홈화면에 추가
-            </button>
             <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition" title="화면 테마 변경">
                 <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
@@ -153,19 +157,29 @@
             <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
             <button onclick="promptClearAllData()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 rounded-lg transition-all">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
-                초기화
+                전체 초기화
             </button>
         </div>
     </header>
 
-    <!-- 메인 레이아웃: 강제 스크롤 제한 및 비율 고정 h-[calc(100vh-header)] -->
-    <main class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden h-[calc(100vh-73px)] lg:h-[calc(100vh-65px)]">
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden relative">
         
-        <!-- 왼쪽: 캘린더 영역 (한 화면 고정 핏을 위해 overflow-hidden 설정) -->
-        <section id="sidebarCalendar" class="w-full lg:w-[420px] xl:w-[460px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 sm:p-5 shrink-0 h-full overflow-hidden relative">
+        <!-- 세로 모드 전용 딤 오버레이 백드롭 -->
+        <div id="sidebarBackdrop" onclick="closeSidebar()" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 hidden lg:hidden transition-all duration-300 opacity-0"></div>
+
+        <!-- 왼쪽: 캘린더 영역 (세로모드 릴레이션 적용) -->
+        <section id="calendarSidebar" class="w-full lg:w-[420px] xl:w-[460px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 sm:p-5 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out">
             
-            <!-- 통합 검색창 (공간 절약을 위해 mb-2 적용) -->
-            <div class="mb-2.5 relative shrink-0">
+            <!-- 세로 모드 시 상단에 표시되는 닫기 어시스트 바 -->
+            <div class="flex items-center justify-between lg:hidden mb-4 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">일정 캘린더 판넬</span>
+                <button onclick="closeSidebar()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
+                    <i data-lucide="chevrons-left" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- 전체 기록 실시간 통합 검색창 -->
+            <div class="mb-4 relative">
                 <input type="text" id="globalSearchInput" oninput="debounceSearch()" placeholder="메모, 회의록, 업무, 일기 통합 스캔..." class="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 transition">
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3"></i>
                 <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -173,35 +187,35 @@
                 </button>
             </div>
             
-            <!-- [수정] 검색 결과 표시 구역 (플로팅 팝업 레이어 형태로 변경하여 캘린더가 밑으로 밀리는 오류 원천 해결) -->
-            <div id="searchResultsArea" class="hidden absolute left-4 right-4 top-14 z-20 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-indigo-100 dark:border-indigo-950/60 shadow-xl rounded-xl max-h-[220px] overflow-y-auto space-y-2">
+            <!-- 검색 결과 표시 구역 -->
+            <div id="searchResultsArea" class="hidden mb-4 p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950/40 rounded-xl max-h-[180px] overflow-y-auto space-y-2">
                 <div class="flex justify-between items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                     <span class="flex items-center gap-1"><i data-lucide="database" class="w-3 h-3"></i> 발견된 타임 기록</span>
-                    <button onclick="clearSearch()" class="hover:underline text-[10px]">스캔 창 닫기</button>
+                    <button onclick="clearSearch()" class="hover:underline">스캔 창 닫기</button>
                 </div>
                 <ul id="searchResultsList" class="divide-y divide-slate-100 dark:divide-slate-800 space-y-1 text-xs">
                     <!-- 스캔 결과 항목 유동적 삽입 -->
                 </ul>
             </div>
 
-            <!-- 년/월 제어부 (mb-2로 컴팩트 조정) -->
-            <div class="flex items-center justify-between mb-2.5 shrink-0">
+            <!-- 년/월 제어 및 오늘 이동 -->
+            <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
-                    <button onclick="prevMonth()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
-                        <i data-lucide="chevron-left" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    <button onclick="prevMonth()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
                     </button>
-                    <span id="currentYearMonth" class="text-sm sm:text-base font-bold text-slate-800 dark:text-white">2026년 06월</span>
-                    <button onclick="nextMonth()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
-                        <i data-lucide="chevron-right" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    <span id="currentYearMonth" class="text-lg font-bold text-slate-800 dark:text-white">2026년 06월</span>
+                    <button onclick="nextMonth()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
                 </div>
-                <button onclick="goToday()" class="px-2.5 py-1 text-[11px] font-semibold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 hover:bg-indigo-100 rounded-md transition">
-                    오늘
+                <button onclick="goToday()" class="px-3 py-1 text-xs font-semibold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 hover:bg-indigo-100 rounded-md transition">
+                    오늘로 이동
                 </button>
             </div>
 
-            <!-- 요일 헤더 (mb-1로 세밀 조정) -->
-            <div class="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 mb-1 shrink-0">
+            <!-- 요일 헤더 -->
+            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">
                 <div class="text-rose-500">일</div>
                 <div>월</div>
                 <div>화</div>
@@ -211,59 +225,60 @@
                 <div class="text-indigo-500">토</div>
             </div>
 
-            <!-- [수정] 캘린더 그리드 (grid-rows-6 및 flex-1 min-h-0를 적용하여 화면 세로 비율에 완벽히 피팅되도록 함) -->
-            <div id="calendarGrid" class="grid grid-cols-7 grid-rows-6 gap-1 sm:gap-1.5 flex-1 min-h-0">
+            <!-- 캘린더 그리드 -->
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 flex-1 min-h-[280px]">
                 <!-- JS에서 일별 템플릿 생성 삽입 예정 -->
             </div>
 
-            <!-- 현 날짜 상세 인디케이터 및 컬러 태그 지정 (여백 mt-4로 최소화) -->
-            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3 shrink-0">
+            <!-- 현 날짜 상세 인디케이터 및 컬러 태그 지정 -->
+            <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 dark:text-white" id="selectedDateLabel">2026년 06월 17일</h3>
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 hidden md:block lg:hidden xl:block mt-0.5">오늘 지정한 컬러태그 및 라이프 요약지표입니다.</p>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white" id="selectedDateLabel">2026년 06월 17일</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">선택된 날짜의 상태 요약을 확인합니다.</p>
                     </div>
-                    <div id="activeDayIndicator" class="px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full flex items-center gap-1">
-                        <span class="w-1 h-1 bg-emerald-500 rounded-full animate-ping"></span>
+                    <div id="activeDayIndicator" class="px-2 py-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
                         Selected
                     </div>
                 </div>
 
-                <!-- 컬러 태그 분류 선택기 (컴팩트 그리드화) -->
-                <div class="bg-slate-50 dark:bg-slate-800/40 p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <!-- 컬러 태그 분류 선택기 -->
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">오늘의 일정 컬러 태그 지정</span>
                     <div class="flex items-center gap-2">
-                        <button onclick="setDayTagColor(null)" class="w-5.5 h-5.5 rounded-full bg-slate-200 dark:bg-slate-700 ring-2 ring-transparent hover:scale-105 transition flex items-center justify-center text-[10px]" title="없음">
-                            <i data-lucide="slash" class="w-3 h-3 text-slate-400"></i>
+                        <button onclick="setDayTagColor(null)" class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 ring-2 ring-transparent hover:scale-105 transition flex items-center justify-center text-[10px]" title="없음">
+                            <i data-lucide="slash" class="w-3.5 h-3.5 text-slate-400"></i>
                         </button>
-                        <button onclick="setDayTagColor('red')" class="w-5.5 h-5.5 rounded-full bg-rose-500 hover:scale-105 transition" title="중요/급함"></button>
-                        <button onclick="setDayTagColor('yellow')" class="w-5.5 h-5.5 rounded-full bg-amber-400 hover:scale-105 transition" title="아이디어"></button>
-                        <button onclick="setDayTagColor('green')" class="w-5.5 h-5.5 rounded-full bg-emerald-500 hover:scale-105 transition" title="개인약속"></button>
-                        <button onclick="setDayTagColor('blue')" class="w-5.5 h-5.5 rounded-full bg-blue-500 hover:scale-105 transition" title="회사미팅"></button>
-                        <button onclick="setDayTagColor('purple')" class="w-5.5 h-5.5 rounded-full bg-purple-500 hover:scale-105 transition" title="공부/공식일정"></button>
-                        <span id="currentTagName" class="text-[10px] text-slate-400 dark:text-slate-500 ml-auto font-semibold">태그 없음</span>
+                        <button onclick="setDayTagColor('red')" class="w-6 h-6 rounded-full bg-rose-500 hover:scale-105 transition" title="중요/급함"></button>
+                        <button onclick="setDayTagColor('yellow')" class="w-6 h-6 rounded-full bg-amber-400 hover:scale-105 transition" title="아이디어"></button>
+                        <button onclick="setDayTagColor('green')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-105 transition" title="개인약속"></button>
+                        <button onclick="setDayTagColor('blue')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-105 transition" title="회사미팅"></button>
+                        <button onclick="setDayTagColor('purple')" class="w-6 h-6 rounded-full bg-purple-500 hover:scale-105 transition" title="공부/공식일정"></button>
+                        <span id="currentTagName" class="text-xs text-slate-400 dark:text-slate-500 ml-auto font-semibold">태그 없음</span>
                     </div>
                 </div>
                 
-                <!-- 요약 통계 정보 (더 작게 핏 가공) -->
+                <!-- 요약 통계 정보 -->
                 <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
-                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">할 일 완료도</span>
-                        <span id="statTodo" class="text-xs font-bold text-slate-700 dark:text-slate-300">0/0</span>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-center">
+                        <span class="block text-xs text-slate-400 dark:text-slate-500">할 일 완료도</span>
+                        <span id="statTodo" class="text-sm font-bold text-slate-700 dark:text-slate-300">0/0</span>
                     </div>
-                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
-                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">습관 달성</span>
-                        <span id="statHabit" class="text-xs font-bold text-slate-700 dark:text-slate-300">0%</span>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-center">
+                        <span class="block text-xs text-slate-400 dark:text-slate-500">습관 달성</span>
+                        <span id="statHabit" class="text-sm font-bold text-slate-700 dark:text-slate-300">0%</span>
                     </div>
-                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
-                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">감정 상태</span>
-                        <span id="statMood" class="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">기록없음</span>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-center">
+                        <span class="block text-xs text-slate-400 dark:text-slate-500">감정 상태</span>
+                        <span id="statMood" class="text-sm font-bold text-slate-700 dark:text-slate-300">기록없음</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 오른쪽: 작업 공간 영역 (태블릿 세로 모드 시 기본 숨김, 수동 제어용 ID 추가) -->
-        <section id="mainWorkspace" class="flex-1 hidden lg:flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950 h-full overflow-hidden">
+        <!-- 오른쪽: 다이어리 본체 워크스페이스 -->
+        <section class="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950">
             
             <!-- 작업용 카테고리 탭 리스트 -->
             <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex overflow-x-auto gap-4 shrink-0">
@@ -285,7 +300,7 @@
                 </button>
                 <button onclick="switchTab('meeting')" id="tab-meeting" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="users" class="w-4 h-4"></i>
-                    회의록
+                    회의록 / 녹음
                 </button>
                 <button onclick="switchTab('note')" id="tab-note" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
@@ -502,12 +517,12 @@
                     </div>
                 </div>
 
-                <!-- 4. 회의록 작성 탭 -->
+                <!-- 4. 회의록 작성 & 오디오 녹음 탭 -->
                 <div id="content-meeting" class="tab-content hidden space-y-4">
                     <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 print-hidden flex-wrap gap-2">
                             <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>회의록 & 미팅 정보
+                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>회의록 & 음성 미디어 마크
                             </h2>
                             <div class="flex items-center gap-2 flex-wrap">
                                 <button onclick="toggleSpeechToText('meetingNotes')" id="stt-meeting-btn" class="px-3 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5" title="음성 받아쓰기 실행/중지">
@@ -519,6 +534,32 @@
                                 <button onclick="saveMeetingMinutes()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
                                     <i data-lucide="save" class="w-3.5 h-3.5"></i> 회의록 임시 저장
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- 실시간 오디오 레코더 컴포넌트 추가 -->
+                        <div class="p-4 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-950/50 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                                    <span class="relative flex h-2.5 w-2.5" id="recordingDot" style="display: none;">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                                    </span>
+                                    🎤 현장 미팅 실시간 음성 녹음기 (Voice Record Node)
+                                </span>
+                                <span id="recordTimer" class="text-xs font-bold text-slate-500 dark:text-slate-400">00:00</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button onclick="startVoiceRecording()" id="btn-record-start" class="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg flex items-center gap-1.5 transition">
+                                    <i data-lucide="circle" class="w-3.5 h-3.5 fill-white"></i> 녹음 시작
+                                </button>
+                                <button onclick="stopVoiceRecording()" id="btn-record-stop" disabled class="px-3.5 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center gap-1.5 transition cursor-not-allowed">
+                                    <i data-lucide="square" class="w-3.5 h-3.5 fill-slate-500"></i> 녹음 중지
+                                </button>
+                                <div class="flex-1 min-w-[200px] flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
+                                    <span class="text-[10px] text-slate-400 font-bold shrink-0">녹음 본문:</span>
+                                    <audio id="voicePlayer" controls class="h-8 flex-1 outline-none"></audio>
+                                </div>
                             </div>
                         </div>
 
@@ -580,8 +621,13 @@
 
                 <!-- 6. 펜슬 필기 캔버스 탭 -->
                 <div id="content-pencil" class="tab-content hidden flex flex-col h-[calc(100vh-220px)] min-h-[420px]">
+                    
+                    <!-- 필기 상단 바 및 가이드라인 템플릿 변경 기능 추가 -->
                     <div class="bg-white dark:bg-slate-900 p-3 rounded-t-xl border border-slate-200 dark:border-slate-800 border-b-0 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                        
+                        <!-- 펜슬 도구 툴킷 (펜/형광펜/지우개) 및 색상선택 -->
                         <div class="flex items-center gap-3 flex-wrap">
+                            <!-- 드로잉 모드 전환 -->
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                                 <button onclick="setDrawingMode('pen')" id="tool-pen" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i> 일반 펜
@@ -594,6 +640,7 @@
                                 </button>
                             </div>
 
+                            <!-- 컬러 팔레트 -->
                             <div id="paletteContainer" class="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800 pr-3">
                                 <button onclick="setPenColor('#0f172a')" class="color-btn w-6 h-6 rounded-full bg-slate-900 ring-2 ring-indigo-500 border-2 border-white dark:border-slate-800" title="기본 다크"></button>
                                 <button onclick="setPenColor('#ef4444')" class="color-btn w-6 h-6 rounded-full bg-red-500 border-2 border-white dark:border-slate-800" title="빨간색"></button>
@@ -602,21 +649,33 @@
                                 <button onclick="setPenColor('#eab308')" class="color-btn w-6 h-6 rounded-full bg-yellow-500 border-2 border-white dark:border-slate-800" title="형광노랑"></button>
                             </div>
 
+                            <!-- 굵기 세팅 -->
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">굵기:</span>
                                 <input type="range" id="lineWidthRange" min="1" max="40" value="3" oninput="updateLineWidth(this.value)" class="w-20 accent-indigo-600 cursor-pointer">
                                 <span id="lineWidthVal" class="text-xs text-slate-600 dark:text-slate-300 font-bold w-6">3px</span>
                             </div>
 
+                            <!-- 직선 그리기 어시스트 -->
                             <div class="flex items-center gap-1.5 ml-2">
-                                <button onclick="toggleStraightLineAssist()" id="straightLineBtn" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">
+                                <button onclick="toggleStraightLineAssist()" id="straightLineBtn" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition" title="자를 대고 긋는 것처럼 일직선을 보정하여 그립니다.">
                                     <i data-lucide="ruler" class="w-3.5 h-3.5"></i>
                                     <span>직선 보정 Off</span>
                                 </button>
                             </div>
+
+                            <!-- 손바닥 오발 필기 가드 버튼 -->
+                            <div class="flex items-center gap-1.5 ml-2">
+                                <button onclick="togglePalmGuard()" id="palmGuardToggleBtn" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition" title="손을 대고 편히 작성하도록 손가락 터치를 막는 하단 필터링 가드를 켭니다.">
+                                    <i data-lucide="hand" class="w-3.5 h-3.5"></i>
+                                    <span>손바닥 가드 Off</span>
+                                </button>
+                            </div>
                         </div>
 
+                        <!-- 가이드라인 배경 및 전역 조작 유틸리티 -->
                         <div class="flex items-center gap-2 flex-wrap">
+                            <!-- 줌 및 캔버스 정보 제어 -->
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300">
                                 <button onclick="adjustZoom(-0.1)" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
                                 <span id="zoomPercent" class="w-12 text-center">100%</span>
@@ -624,6 +683,7 @@
                                 <button onclick="resetZoomAndPan()" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded" title="크기 및 배율 초기화"><i data-lucide="maximize" class="w-3.5 h-3.5"></i></button>
                             </div>
 
+                            <!-- 배경 템플릿 변경 셀렉터 -->
                             <div class="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800 pr-2">
                                 <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">배경:</span>
                                 <select id="templateSelect" onchange="changeCanvasTemplate(this.value)" class="px-2 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg focus:outline-none">
@@ -646,11 +706,22 @@
                         </div>
                     </div>
 
+                    <!-- 실제 그리기 캔버스 영역 -->
                     <div class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-b-xl overflow-hidden shadow-sm relative canvas-container">
+                        <!-- 손가락 두 개 동작 지원 안내 오버레이 -->
                         <div class="absolute top-2 left-2 bg-slate-950/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none z-10 font-medium">
                             ✌️ 두 손가락으로 줌 및 이동 가능
                         </div>
+                        
+                        <!-- 손바닥 거치 가드 오버레이 (Palm Guard Area) -->
+                        <div id="palmRestSafetyShield" class="absolute bottom-0 left-0 right-0 h-28 bg-indigo-500/10 backdrop-blur-[2px] border-t border-indigo-500/20 z-10 flex items-center justify-center pointer-events-auto select-none" style="display: none; touch-action: none;">
+                            <span class="text-xs text-indigo-600/70 dark:text-indigo-400/80 font-black flex items-center gap-1.5">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i> 손바닥 가드 보호 영역 (터치가 입력되지 않습니다)
+                            </span>
+                        </div>
+
                         <canvas id="noteCanvas" class="w-full h-full block cursor-crosshair bg-transparent"></canvas>
+                        <!-- 로딩 표시 오버레이 -->
                         <div id="canvasLoader" class="absolute inset-0 bg-white/70 dark:bg-slate-900/70 flex items-center justify-center hidden z-20">
                             <div class="flex flex-col items-center gap-2">
                                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -663,70 +734,59 @@
                 <!-- 7. AI 분석 탭 -->
                 <div id="content-ai" class="tab-content hidden space-y-4">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- AI 분석 제어판 -->
-                        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 h-fit">
+                        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                             <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>AI 스마트 비서 설정
+                                <i data-lucide="brain-circuit" class="text-indigo-500"></i> AI 분석 가이드
                             </h2>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">분석 테마 목적</label>
-                                    <div class="space-y-2">
-                                        <button type="button" id="ai-task-summarize" onclick="setAiTask('summarize')" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-2">
-                                            <i data-lucide="check-square" class="w-4 h-4"></i>
-                                            <div>
-                                                <p class="font-bold">일일 요약 및 액션 아이템</p>
-                                                <p class="text-[10px] text-indigo-500 dark:text-indigo-400 mt-0.5">업무 일지에서 핵심 To-Do를 자동 추출합니다.</p>
-                                            </div>
-                                        </button>
-                                        <button type="button" id="ai-task-feedback" onclick="setAiTask('feedback')" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2">
-                                            <i data-lucide="heart" class="w-4 h-4 text-rose-500"></i>
-                                            <div>
-                                                <p class="font-bold">심리 케어 & 맞춤 공감</p>
-                                                <p class="text-[10px] text-slate-400 mt-0.5">그날의 마음 상태와 일기를 따뜻하게 보살핍니다.</p>
-                                            </div>
-                                        </button>
-                                    </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">분석 목적 선택</label>
+                                <div class="space-y-2">
+                                    <button onclick="setAiTask('summarize')" id="ai-task-summarize" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-2">
+                                        <i data-lucide="file-check" class="w-4 h-4"></i> 업무 요약 및 Action-Item 추출
+                                    </button>
+                                    <button onclick="setAiTask('feedback')" id="ai-task-feedback" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2">
+                                        <i data-lucide="heart-pulse" class="w-4 h-4"></i> 하루 일기 힐링 심리 코칭
+                                    </button>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">분석 대상 원본</label>
-                                    <select id="aiSourceSelect" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500">
-                                        <option value="both">📝 오늘의 모든 텍스트 기록 통합 스캔</option>
-                                        <option value="work">💼 오늘의 업무 일지 & 회의록만</option>
-                                        <option value="note">❤️ 마음 일기 & 텍스트 메모만</option>
-                                    </select>
-                                </div>
-                                <button onclick="runGeminiAi()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md">
-                                    <i data-lucide="sparkles" class="w-4 h-4"></i> AI 브리핑 스캔 시작
-                                </button>
                             </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">데이터 분석 대상</label>
+                                <select id="aiSourceSelect" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="both">모든 기록 분석 (일기, 회의록, 업무일지)</option>
+                                    <option value="work">업무용 기록만 분석 (회의록, 업무일지)</option>
+                                    <option value="note">감정용 기록만 분석 (일기, 텍스트메모)</option>
+                                </select>
+                            </div>
+                            <button onclick="runGeminiAi()" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> AI 분석 비서 가동
+                            </button>
                         </div>
 
-                        <!-- AI 스마트 비서 분석 리포트 -->
-                        <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[420px]">
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[calc(100vh-280px)] min-h-[350px]">
                             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 shrink-0">
-                                <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>AI 인텔리전스 리포트
-                                </h2>
-                                <span id="aiTimeLabel" class="text-xs text-slate-400 dark:text-slate-500 font-semibold">대기 중</span>
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span> AI 어시스턴트 분석창
+                                </h3>
+                                <span id="aiTimeLabel" class="text-[10px] text-slate-400">대기 중</span>
                             </div>
-                            <div class="flex-1 relative">
-                                <div id="aiLoader" class="absolute inset-0 bg-white/85 dark:bg-slate-900/85 flex flex-col items-center justify-center gap-3 hidden z-10">
-                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                                    <span class="text-xs text-slate-500 dark:text-slate-400 font-bold">인공지능 어시스턴트가 맥락 분석 및 제안서 작성 중...</span>
-                                </div>
-                                <div id="aiResponseContainer" class="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-4 overflow-y-auto max-h-[500px] leading-relaxed">
-                                    <div class="text-center py-12 text-slate-400 dark:text-slate-500">
-                                        <i data-lucide="message-square-dashed" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
-                                        <p>왼쪽 패널에서 분석 대상 데이터를 정한 뒤 브리핑 스캔을 돌려주세요.</p>
-                                    </div>
+
+                            <!-- AI 답변 출력 본문 -->
+                            <div class="flex-1 overflow-y-auto space-y-4 text-xs leading-relaxed text-slate-600 dark:text-slate-300 pr-2" id="aiResponseContainer">
+                                <div class="text-center py-12 text-slate-400 dark:text-slate-500">
+                                    <i data-lucide="message-square-dashed" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                                    <p>왼쪽 패널에서 분석 목적을 고른 뒤 분석기를 작동해 보세요!</p>
                                 </div>
                             </div>
-                            <div class="border-t border-slate-100 dark:border-slate-800 pt-3 mt-4 flex justify-end shrink-0">
-                                <button id="applyTodosBtn" onclick="applyExtractedTodos()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 hidden shadow-sm">
-                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 리포트 내 할 일을 오늘의 '할 일' 목록에 자동 삽입
-                                </button>
+
+                            <!-- 로더 애니메이션 -->
+                            <div id="aiLoader" class="hidden flex flex-col items-center justify-center py-12 flex-1">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
+                                <span class="text-xs text-indigo-500 font-bold">Gemini AI가 오늘의 기록을 심층 정독하고 있습니다...</span>
                             </div>
+
+                            <button onclick="applyExtractedTodos()" id="applyTodosBtn" class="hidden mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-1.5 shrink-0">
+                                <i data-lucide="list-plus" class="w-4 h-4"></i> 분석된 실천과제를 "할 일 목록"에 추가하기
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -742,7 +802,7 @@
                                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">지정한 달력 연월을 스캔하여 일기 감정 상태, 습관 지속 점수, 업무 완수 성과를 지표로 시각화합니다.</p>
                             </div>
                             <button onclick="renderDashboard()" class="px-3.5 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
-                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5 animate-spin"></i> 데이터 새로고침
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> 데이터 새로고침
                             </button>
                         </div>
 
@@ -761,7 +821,7 @@
                                 </div>
                             </div>
 
-                            <!-- B. 감정 트랙 수치화 보드 (Simple SVG Donut) -->
+                            <!-- B. 감정 트랙 수치화 보드 -->
                             <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                                     <i data-lucide="smile" class="w-4 h-4 text-emerald-500"></i> 이번 달 감정 지도 분포
@@ -800,11 +860,11 @@
                                 </h3>
                                 <div class="space-y-4 py-2">
                                     <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500 dark:text-slate-400">월간 등록 전체 To-Do</span>
+                                        <span class="text-slate-500 dark:text-slate-400">월간 등록 To-Do</span>
                                         <span id="dashTodoTotal" class="font-bold text-slate-700 dark:text-slate-300">0개</span>
                                     </div>
                                     <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500 dark:text-slate-400">완료 완수 완료수</span>
+                                        <span class="text-slate-500 dark:text-slate-400">완료수</span>
                                         <span id="dashTodoDone" class="font-bold text-emerald-600 dark:text-emerald-400">0개</span>
                                     </div>
                                     <div class="space-y-1 pt-2">
@@ -830,120 +890,7 @@
 
     </main>
 
-    <!-- 집중 타이머 및 백색 소음 플레이어 -->
-    <div id="focusWidget" class="fixed bottom-6 left-6 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 w-64 transition-all duration-300 max-h-[50px] overflow-hidden hover:max-h-[300px] group">
-        <div class="flex items-center justify-between pointer-events-auto cursor-pointer" onclick="toggleFocusWidgetExpand()">
-            <div class="flex items-center gap-2">
-                <div id="focusPulse" class="w-2.5 h-2.5 bg-slate-300 rounded-full transition-all duration-300"></div>
-                <span class="text-xs font-bold text-slate-700 dark:text-slate-200" id="focusWidgetTitle">집중 타이머 & 백색 소음</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span id="focusTimeDisplay" class="text-xs font-black text-indigo-600 dark:text-indigo-400">25:00</span>
-                <i data-lucide="chevron-up" class="w-4 h-4 text-slate-400 group-hover:rotate-180 transition-transform duration-300" id="focusWidgetArrow"></i>
-            </div>
-        </div>
-        
-        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-4">
-            <div class="flex items-center justify-center gap-2">
-                <button onclick="adjustFocusTime(-300)" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-lg"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
-                <span class="text-2xl font-black text-slate-800 dark:text-white w-24 text-center tracking-wider" id="focusTimeMain">25:00</span>
-                <button onclick="adjustFocusTime(300)" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-lg"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
-            </div>
-            
-            <div class="flex gap-2">
-                <button id="focusStartBtn" onclick="togglePomodoroTimer()" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
-                    <i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작
-                </button>
-                <button onclick="resetPomodoroTimer()" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold rounded-lg transition">
-                    초기화
-                </button>
-            </div>
-
-            <div class="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
-                <div class="flex justify-between items-center">
-                    <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase tracking-wider">
-                        <i data-lucide="headphones" class="w-3 h-3 text-emerald-500"></i> Ambient Rain Sound
-                    </span>
-                    <button id="noiseToggleBtn" onclick="toggleWhiteNoise()" class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:underline">빗소리 재생</button>
-                </div>
-                <div class="flex items-center gap-2">
-                    <i data-lucide="volume-2" class="w-3 h-3 text-slate-400"></i>
-                    <input type="range" id="noiseVolume" min="0" max="100" value="35" oninput="changeNoiseVolume(this.value)" class="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- PWA 홈 화면 추가 안내 모달 -->
-    <div id="installModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div class="flex items-center gap-2.5 text-indigo-600 dark:text-indigo-400">
-                    <div class="p-2 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl">
-                        <i data-lucide="smartphone" class="w-5 h-5"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">태블릿 홈화면에 바로가기 앱 추가</h3>
-                </div>
-                <button onclick="closeInstallModal()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                홈 화면에 북마크 또는 독립형 웹 앱으로 추가하면 브라우저의 상단 주소창이나 제어 도구들이 완전히 제거되어 더욱 몰입도 높은 전체 화면 디지털 다이어리로 사용하실 수 있습니다.
-            </p>
-
-            <!-- OS 선택 탭 -->
-            <div class="flex border-b border-slate-200 dark:border-slate-700">
-                <button id="btnTabIos" onclick="switchInstallTab('ios')" class="flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center">
-                     iPad / iPhone (Safari)
-                </button>
-                <button id="btnTabAndroid" onclick="switchInstallTab('android')" class="flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800">
-                    안드로이드 태블릿 (Chrome)
-                </button>
-            </div>
-
-            <!-- iOS 안내 콘텐츠 -->
-            <div id="guideIos" class="space-y-3 py-2 text-xs text-slate-600 dark:text-slate-300">
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">1</span>
-                    <p class="leading-relaxed">Safari 브라우저 하단 또는 우측 상단의 <strong class="text-indigo-600 dark:text-indigo-400 font-bold">공유 버튼</strong>(위쪽 화살표가 그려진 상자 아이콘 <i data-lucide="share" class="w-3.5 h-3.5 inline"></i>)을 터치합니다.</p>
-                </div>
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">2</span>
-                    <p class="leading-relaxed">하단으로 목록을 조금 스크롤하여 <strong class="text-slate-900 dark:text-white font-bold">'홈 화면에 추가'</strong> 아이콘을 찾아 선택합니다.</p>
-                </div>
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">3</span>
-                    <p class="leading-relaxed">우측 상단의 <strong class="text-emerald-600 font-bold">'추가'</strong>를 터치하면 바탕화면에 다이어리 바로가기 앱이 생성됩니다.</p>
-                </div>
-            </div>
-
-            <!-- 안드로이드 안내 콘텐츠 -->
-            <div id="guideAndroid" class="space-y-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden">
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">1</span>
-                    <p class="leading-relaxed">Chrome 또는 삼성 인터넷 우측 상단의 <strong class="text-indigo-600 dark:text-indigo-400 font-bold">더보기 버튼</strong>(세로 점 세 개 <i data-lucide="more-vertical" class="w-3.5 h-3.5 inline"></i> 또는 석 삼 자 <i data-lucide="menu" class="w-3.5 h-3.5 inline"></i> 모양)을 누릅니다.</p>
-                </div>
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">2</span>
-                    <p class="leading-relaxed">옵션에서 <strong class="text-slate-900 dark:text-white font-bold">'홈 화면에 추가'</strong> 또는 <strong class="text-slate-900 dark:text-white font-bold">'앱 설치'</strong> 메뉴를 찾아 선택합니다.</p>
-                </div>
-                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">3</span>
-                    <p class="leading-relaxed">팝업 안내 창이 나오면 <strong class="text-emerald-600 font-bold">'추가/설치'</strong>를 결정하고 마무리합니다.</p>
-                </div>
-            </div>
-
-            <div class="pt-2 flex justify-end">
-                <button onclick="closeInstallModal()" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-lg">
-                    확인했습니다
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 확인용 알림/확인창 커스텀 모달 -->
+    <!-- 커스텀 모달: 알림 / 확인창 대체용 -->
     <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
             <div class="flex items-center gap-3 text-rose-500">
@@ -960,49 +907,10 @@
         </div>
     </div>
 
-    <!-- 토스트 메시지 -->
+    <!-- 커스텀 알림(토스트) 메시지 -->
     <div id="toastMessage" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 ease-out z-50 flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-sm">
         <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
         <span id="toastText">성공적으로 처리되었습니다.</span>
-    </div>
-
-    <!-- 가이드 안내 모달 -->
-    <div id="guideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-            <div class="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
-                <div class="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl">
-                    <i data-lucide="sparkles" class="w-8 h-8"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">TabPlanner Pro v4.5</h3>
-                    <p class="text-xs text-indigo-500 font-semibold">금일 작업사항 & 타임라인 신규 업데이트</p>
-                </div>
-            </div>
-            
-            <div class="space-y-3 text-slate-600 dark:text-slate-300 text-sm">
-                <p>애플펜슬 필기 및 업무 다이어리를 넘어서 시간대별 작업 타임라인과 루틴까지 돌볼 수 있는 초맞춤형 업무 플래너로 탄생했습니다.</p>
-                <ul class="space-y-2 text-xs bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                    <li class="flex items-start gap-2">
-                        <span class="text-indigo-500 font-bold">•</span>
-                        <span><strong>금일 작업사항:</strong> 시간대별 핵심 스케줄과 업무 상태(진행중/완료)를 체계적으로 바인딩하세요.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-indigo-500 font-bold">•</span>
-                        <span><strong>습관 트래커:</strong> 매일 실천하고픈 습관 목표를 루틴으로 지정해 트래킹해 보세요.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-indigo-500 font-bold">•</span>
-                        <span><strong>AI 보고서 및 피드백:</strong> 그날의 기분, 타임라인 업무 상태를 AI가 인지하여 To-Do를 추출하고 코칭해 줍니다.</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="pt-2 flex justify-end">
-                <button onclick="closeGuide()" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-lg">
-                    지금 바로 다이어리 시작하기
-                </button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -1042,6 +950,14 @@
         let recognition = null;
         let activeSttTargetId = null;
 
+        // 음성 녹음 (Audio Record Node) 상태 변수
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isVoiceRecording = false;
+        let voiceRecordTimer = null;
+        let voiceRecordSeconds = 0;
+        let activeVoiceBlobUrl = null;
+
         // AI 관련 변수
         let aiTask = "summarize"; // "summarize" | "feedback"
         let aiExtractedTodosCache = []; // 추출된 투두 목록 버퍼
@@ -1049,105 +965,10 @@
         // 커스텀 모달 콜백 홀더
         let confirmModalCallback = null;
 
-        // 포모도로 및 백색소음 관련 변수
+        // 통합 검색 디바운스 대기 제어 변수
         let searchTimeout = null;
-        let pomodoroTimer = null;
-        let focusSecondsLeft = 1500; // 기본 25분 세팅
-        let isPomodoroRunning = false;
-        let audioCtx = null;
-        let noiseNode = null;
-        let filterNode = null;
-        let gainNode = null;
-        let isWhiteNoisePlaying = false;
-        let isWidgetExpanded = false;
 
-        // --- 2. PWA 홈 화면 설치 및 가로/세로 모드 뷰 스위치 제어 ---
-        function openInstallModal() {
-            document.getElementById("installModal").classList.remove("hidden");
-            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                switchInstallTab('ios');
-            } else if (/android/i.test(userAgent)) {
-                switchInstallTab('android');
-            }
-        }
-
-        function closeInstallModal() {
-            document.getElementById("installModal").classList.add("hidden");
-        }
-
-        function switchInstallTab(platform) {
-            const tabIos = document.getElementById("btnTabIos");
-            const tabAndroid = document.getElementById("btnTabAndroid");
-            const guideIos = document.getElementById("guideIos");
-            const guideAndroid = document.getElementById("guideAndroid");
-
-            if (platform === 'ios') {
-                tabIos.className = "flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center";
-                tabAndroid.className = "flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800";
-                guideIos.classList.remove("hidden");
-                guideAndroid.classList.add("hidden");
-            } else {
-                tabAndroid.className = "flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center";
-                tabIos.className = "flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800";
-                guideAndroid.classList.remove("hidden");
-                guideIos.classList.add("hidden");
-            }
-        }
-
-        // [수정] 세로 모드 대응 뷰 교체 함수
-        function togglePortraitView(target) {
-            const sidebar = document.getElementById("sidebarCalendar");
-            const workspace = document.getElementById("mainWorkspace");
-            const btnCal = document.getElementById("btnViewCalendar");
-            const btnWork = document.getElementById("btnViewWorkspace");
-
-            if (target === 'calendar') {
-                sidebar.classList.remove("hidden");
-                sidebar.classList.add("flex");
-                workspace.classList.add("hidden");
-                workspace.classList.remove("flex");
-
-                btnCal.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
-                btnWork.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition";
-            } else {
-                sidebar.classList.add("hidden");
-                sidebar.classList.remove("flex");
-                workspace.classList.remove("hidden");
-                workspace.classList.add("flex");
-
-                btnWork.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
-                btnCal.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition";
-
-                // 필기 드로잉 탭인 경우 가상 리사이즈 트리거
-                if (activeTab === 'pencil') {
-                    setTimeout(handleCanvasResize, 150);
-                }
-            }
-        }
-
-        // 반응형 해상도 추적 및 초기 배치 설정
-        function handleOrientationLayout() {
-            const sidebar = document.getElementById("sidebarCalendar");
-            const workspace = document.getElementById("mainWorkspace");
-            const switcher = document.getElementById("portraitViewSwitcher");
-
-            if (window.innerWidth >= 1024) {
-                // 데스크톱 / 가로형 레이아웃 복구
-                sidebar.classList.remove("hidden");
-                sidebar.classList.add("flex");
-                workspace.classList.remove("hidden");
-                workspace.classList.add("flex");
-                switcher.classList.add("hidden");
-            } else {
-                // 모바일 및 태블릿 세로형 레이아웃 스위처 노출
-                switcher.classList.remove("hidden");
-                // 기본으로 캘린더 노출
-                togglePortraitView('calendar');
-            }
-        }
-
-        // --- 3. 초기 기동 & 설정 불러오기 ---
+        // --- 2. 초기 기동 & 설정 불러오기 ---
         window.onload = function() {
             lucide.createIcons();
             initTheme();
@@ -1160,18 +981,10 @@
             initIndexedDB().then(() => {
                 renderCalendar();
                 loadSelectedDateData();
-                checkFirstVisit();
-                handleOrientationLayout();
             });
 
             initCanvas();
-            updateTimerDisplay();
-            
-            // 해상도 변경 혹은 화면 회전 시 레이아웃 제어 등록
-            window.addEventListener('resize', () => {
-                handleCanvasResize();
-                handleOrientationLayout();
-            });
+            window.addEventListener('resize', handleCanvasResize);
         };
 
         // 다크모드 시스템 로직
@@ -1203,10 +1016,10 @@
 
         function initIndexedDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open("TabPlannerDatabase", 4);
+                const request = indexedDB.open("TabPlannerDatabase", 5); 
                 
                 request.onblocked = function() {
-                    console.warn("데이터베이스 오픈이 다른 탭에 의해 블록되었습니다.");
+                    console.warn("데이터베이스 오픈 블록 대기 중...");
                 };
 
                 request.onupgradeneeded = function(e) {
@@ -1222,12 +1035,13 @@
                 };
 
                 request.onerror = function(e) {
-                    showToast("데이터베이스 연결에 실패했습니다.");
+                    showToast("데이터베이스 연결 실패");
                     reject();
                 };
             });
         }
 
+        // iOS 사파리 대응 안전 날짜 파서
         function parseDateSafe(dateStr) {
             if (!dateStr) return new Date();
             const parts = dateStr.split('-');
@@ -1235,12 +1049,45 @@
             return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         }
 
-        // --- 4. 공통 모달 및 토스트 유틸리티 ---
+        // --- 3. 커스텀 모달 및 공통 유틸리티 ---
         function showConfirmModal(desc, callback) {
             const modal = document.getElementById("confirmModal");
             document.getElementById("confirmModalDesc").innerText = desc;
             modal.classList.remove("hidden");
             confirmModalCallback = callback;
+        }
+
+        // --- 3-2. 세로 모드 대응 사이드바(달력) 토글 로직 ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById("calendarSidebar");
+            const backdrop = document.getElementById("sidebarBackdrop");
+            
+            const isLgDesktop = window.innerWidth >= 1024;
+
+            if (isLgDesktop) {
+                // 데스크톱 가로 모드: 달력 영역 접기/열기 애니메이션
+                sidebar.classList.toggle("hidden");
+                // 접고 나면 캔버스 리사이즈
+                setTimeout(handleCanvasResize, 350);
+            } else {
+                // 태블릿 세로 모드 및 모바일: 오버레이 드로어 토글
+                const isActive = sidebar.classList.toggle("sidebar-active");
+                if (isActive) {
+                    backdrop.classList.remove("hidden");
+                    setTimeout(() => backdrop.classList.add("opacity-100"), 10);
+                } else {
+                    closeSidebar();
+                }
+            }
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById("calendarSidebar");
+            const backdrop = document.getElementById("sidebarBackdrop");
+            
+            sidebar.classList.remove("sidebar-active");
+            backdrop.classList.remove("opacity-100");
+            setTimeout(() => backdrop.classList.add("hidden"), 300);
         }
 
         function closeConfirmModal(result) {
@@ -1274,18 +1121,6 @@
             }, 3000);
         }
 
-        function checkFirstVisit() {
-            if (!localStorage.getItem("tabPlannerFirstVisit_v45")) {
-                document.getElementById("guideModal").classList.remove("hidden");
-            }
-        }
-
-        function closeGuide() {
-            localStorage.setItem("tabPlannerFirstVisit_v45", "true");
-            document.getElementById("guideModal").classList.add("hidden");
-        }
-
-        // --- 5. 달력 렌더러 ---
         function renderCalendar() {
             const grid = document.getElementById("calendarGrid");
             grid.innerHTML = "";
@@ -1315,7 +1150,7 @@
                     const isToday = formatDate(new Date()) === dateStr;
                     const isSelected = selectedDateStr === dateStr;
                     
-                    const daySummary = summaries[dateStr] || { hasTodo: 0, hasMeeting: false, hasNote: false, hasCanvas: false, tagColor: null, mood: "", habitRatio: 0, hasWork: false };
+                    const daySummary = summaries[dateStr] || { hasTodo: 0, hasMeeting: false, hasNote: false, hasCanvas: false, tagColor: null, mood: "", habitRatio: 0, hasWork: false, hasVoice: false };
 
                     grid.appendChild(createDayCell(i, dateStr, true, isToday, isSelected, daySummary));
                 }
@@ -1346,8 +1181,7 @@
                 }
             }
 
-            // min-h-[60px] 제거 및 h-full 설정으로 화면 높이에 정비례 하도록 최적화
-            cell.className = `h-full p-1 sm:p-1.5 rounded-xl flex flex-col justify-between items-start transition-all relative border ${tagBorderClass} ${
+            cell.className = `min-h-[60px] p-1.5 rounded-xl flex flex-col justify-between items-start transition-all relative border ${tagBorderClass} ${
                 isCurrentMonth ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20" : "bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 pointer-events-none"
             } ${
                 isSelected ? "ring-2 ring-indigo-600 dark:ring-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20" : ""
@@ -1401,6 +1235,9 @@
                 if (summary.habitRatio > 0) {
                     indicatorHTML += `<span class="w-1.5 h-1.5 bg-amber-500 rounded-full" title="루틴실천"></span>`;
                 }
+                if (summary.hasVoice) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-rose-500 rounded-full" title="음성녹음"></span>`;
+                }
                 indicatorHTML += `</div>`;
             }
 
@@ -1431,9 +1268,9 @@
             renderCalendar();
             loadSelectedDateData();
 
-            // 모바일 및 세로 모드 상태에서 날짜 클릭 시 자동으로 작업대로 전환되게 조치 (사용성 극대화)
+            // 세로 모드라면 날짜 선택 후 달력 자동 닫기
             if (window.innerWidth < 1024) {
-                togglePortraitView('workspace');
+                closeSidebar();
             }
         }
 
@@ -1442,7 +1279,12 @@
             renderCalendar();
         }
 
-        // --- 6. IndexedDB 데이터 교환 컨트롤러 ---
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        // --- 5. 데이터 백엔드 통신 및 입출력 (IndexedDB 어시스터) ---
         function getPlannerData(date) {
             return new Promise((resolve) => {
                 if (!db) return resolve(null);
@@ -1455,7 +1297,6 @@
                     };
                     request.onerror = () => resolve(null);
                 } catch (e) {
-                    console.error("데이터 읽기 오류:", e);
                     resolve(null);
                 }
             });
@@ -1482,7 +1323,8 @@
                                 mood: "",
                                 diary: "",
                                 habitChecks: {},
-                                work: { status: "ready", summary: "", pending: "", issues: "", timeline: {} }
+                                work: { status: "ready", summary: "", pending: "", issues: "", timeline: {} },
+                                voiceMemo: null 
                             };
                         }
                         
@@ -1497,7 +1339,6 @@
                     };
                     getRequest.onerror = () => resolve(false);
                 } catch (e) {
-                    console.error("데이터 쓰기 오류:", e);
                     resolve(false);
                 }
             });
@@ -1540,7 +1381,8 @@
                                 tagColor: val.tagColor || null,
                                 mood: val.mood || "",
                                 habitRatio: checkedCount,
-                                hasWork: hasWorkLog
+                                hasWork: hasWorkLog,
+                                hasVoice: val.voiceMemo ? true : false
                             };
                             cursor.continue();
                         } else {
@@ -1549,7 +1391,6 @@
                     };
                     request.onerror = () => resolve({});
                 } catch (e) {
-                    console.error("서머리 로딩 실패:", e);
                     resolve({});
                 }
             });
@@ -1558,16 +1399,23 @@
         function loadSelectedDateData() {
             getPlannerData(selectedDateStr).then(data => {
                 updateTagStatus(data ? data.tagColor : null);
-
                 stopSpeechRecognition();
                 document.getElementById("applyTodosBtn").classList.add("hidden");
                 document.getElementById("aiResponseContainer").innerHTML = `
                     <div class="text-center py-12 text-slate-400 dark:text-slate-500">
                         <i data-lucide="message-square-dashed" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
-                        <p>왼쪽 패널에서 분석 목적을 고른 뒤 스마트 분석기를 실행해 주세요.</p>
+                        <p>왼쪽 패널에서 분석 목적을 고른 뒤 분석기를 작동해 보세요!</p>
                     </div>
                 `;
                 lucide.createIcons();
+
+                // 오디오 소스 해제 및 초기화
+                const player = document.getElementById("voicePlayer");
+                player.src = "";
+                if (activeVoiceBlobUrl) {
+                    URL.revokeObjectURL(activeVoiceBlobUrl);
+                    activeVoiceBlobUrl = null;
+                }
 
                 if (data) {
                     renderTodoList(data.todos || []);
@@ -1579,9 +1427,7 @@
                     document.getElementById("meetingNotes").value = meeting.notes || "";
 
                     document.getElementById("noteContent").value = data.note || "";
-
                     renderHabitList(data.habitChecks || {});
-
                     selectMoodButton(data.mood || "");
                     document.getElementById("diaryContent").value = data.diary || "";
 
@@ -1601,6 +1447,18 @@
                     });
 
                     loadCanvasImage(data.canvasImage);
+
+                    // 음성 메모 파일 복원 및 로드
+                    if (data.voiceMemo) {
+                        try {
+                            const blob = base64ToBlob(data.voiceMemo, "audio/webm");
+                            activeVoiceBlobUrl = URL.createObjectURL(blob);
+                            player.src = activeVoiceBlobUrl;
+                        } catch(e) {
+                            console.error("오디오 복원 중 요류:", e);
+                        }
+                    }
+
                     updateStats(data);
                 } else {
                     renderTodoList([]);
@@ -1630,11 +1488,34 @@
             });
         }
 
+        // Base64 <-> Blob 헬퍼 함수
+        function base64ToBlob(base64, mime) {
+            const byteString = atob(base64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mime });
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64String = reader.result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
         function setDayTagColor(color) {
             savePlannerData(selectedDateStr, { tagColor: color }).then(() => {
                 updateTagStatus(color);
                 renderCalendar();
-                showToast("오늘의 대표 일정 태그가 변경되었습니다.");
+                showToast("오늘의 태그 컬러가 업데이트되었습니다.");
             });
         }
 
@@ -1646,11 +1527,11 @@
             } else {
                 labelEl.className = "text-xs ml-auto font-bold uppercase";
                 switch(color) {
-                    case 'red': labelEl.innerText = "긴급 / 중요"; labelEl.className = "text-xs ml-auto font-bold text-rose-500"; break;
-                    case 'yellow': labelEl.innerText = "아이디어"; labelEl.className = "text-xs ml-auto font-bold text-amber-500"; break;
-                    case 'green': labelEl.innerText = "개인 일정"; labelEl.className = "text-xs ml-auto font-bold text-emerald-500"; break;
-                    case 'blue': labelEl.innerText = "회사 미팅"; labelEl.className = "text-xs ml-auto font-bold text-blue-500"; break;
-                    case 'purple': labelEl.innerText = "공부/공식일정"; labelEl.className = "text-xs ml-auto font-bold text-purple-500"; break;
+                    case 'red': labelEl.innerText = "긴급 / 중요"; labelEl.className = "text-xs ml-auto font-bold uppercase text-rose-500"; break;
+                    case 'yellow': labelEl.innerText = "아이디어"; labelEl.className = "text-xs ml-auto font-bold uppercase text-amber-500"; break;
+                    case 'green': labelEl.innerText = "개인 일정"; labelEl.className = "text-xs ml-auto font-bold uppercase text-emerald-500"; break;
+                    case 'blue': labelEl.innerText = "업무 미팅"; labelEl.className = "text-xs ml-auto font-bold uppercase text-blue-500"; break;
+                    case 'purple': labelEl.innerText = "공무 스케줄"; labelEl.className = "text-xs ml-auto font-bold uppercase text-purple-500"; break;
                 }
             }
         }
@@ -1694,39 +1575,112 @@
             }
         }
 
-        // --- 7. 투두 리스트 핸들러 ---
+        // --- 6. 음성 실시간 녹음 엔진 개발 (Web Audio Node) ---
+        function startVoiceRecording() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast("마이크 연결 미지원 브라우저입니다.");
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    blobToBase64(audioBlob).then(base64 => {
+                        savePlannerData(selectedDateStr, { voiceMemo: base64 }).then(() => {
+                            showToast("현장 음성 녹음 데이터가 일지에 저장되었습니다.");
+                            
+                            if (activeVoiceBlobUrl) {
+                                URL.revokeObjectURL(activeVoiceBlobUrl);
+                            }
+                            activeVoiceBlobUrl = URL.createObjectURL(audioBlob);
+                            document.getElementById("voicePlayer").src = activeVoiceBlobUrl;
+                        });
+                    });
+
+                    // 오디오 스트림 내부 트랙들 정상 해제
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isVoiceRecording = true;
+                voiceRecordSeconds = 0;
+                document.getElementById("recordingDot").style.display = "inline-flex";
+                document.getElementById("btn-record-start").disabled = true;
+                document.getElementById("btn-record-start").className = "px-3.5 py-1.5 text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg cursor-not-allowed flex items-center gap-1.5";
+                document.getElementById("btn-record-stop").disabled = false;
+                document.getElementById("btn-record-stop").className = "px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 transition cursor-pointer";
+
+                voiceRecordTimer = setInterval(() => {
+                    voiceRecordSeconds++;
+                    const mins = String(Math.floor(voiceRecordSeconds / 60)).padStart(2, '0');
+                    const secs = String(voiceRecordSeconds % 60).padStart(2, '0');
+                    document.getElementById("recordTimer").innerText = `${mins}:${secs}`;
+                }, 1000);
+
+            }).catch(err => {
+                console.error("마이크 접근 거부:", err);
+                showToast("마이크 오디오 접근 권한을 확인해 주세요.");
+            });
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && isVoiceRecording) {
+                mediaRecorder.stop();
+                isVoiceRecording = false;
+                clearInterval(voiceRecordTimer);
+                
+                document.getElementById("recordingDot").style.display = "none";
+                document.getElementById("recordTimer").innerText = "00:00";
+                
+                document.getElementById("btn-record-start").disabled = false;
+                document.getElementById("btn-record-start").className = "px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg flex items-center gap-1.5 transition";
+                document.getElementById("btn-record-stop").disabled = true;
+                document.getElementById("btn-record-stop").className = "px-3.5 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center gap-1.5 cursor-not-allowed";
+            }
+        }
+
+        // --- 7. 세부 기능 구현: 할 일 리스트 (To-do) ---
         function renderTodoList(todos) {
-            const list = document.getElementById("todoList");
+            const listContainer = document.getElementById("todoList");
             const emptyState = document.getElementById("todoEmptyState");
-            const progress = document.getElementById("todoProgress");
-            
-            list.innerHTML = "";
-            
+            listContainer.innerHTML = "";
+
             if (todos.length === 0) {
                 emptyState.classList.remove("hidden");
-                progress.innerText = "0개 완료됨";
+                document.getElementById("todoProgress").innerText = "할 일 없음";
                 return;
             }
             emptyState.classList.add("hidden");
 
-            const doneCount = todos.filter(t => t.done).length;
-            progress.innerText = `${todos.length}개 중 ${doneCount}개 완료`;
+            const completed = todos.filter(t => t.done).length;
+            document.getElementById("todoProgress").innerText = `완료 ${completed} / 전체 ${todos.length}`;
 
             todos.forEach((todo, idx) => {
                 const li = document.createElement("li");
-                li.className = "py-3 flex items-center justify-between gap-3 group";
+                li.className = "flex items-center justify-between py-3.5 group";
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <button onclick="toggleTodo(${idx})" class="w-5 h-5 rounded border ${todo.done ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'} flex items-center justify-center transition">
+                        <button onclick="toggleTodo(${idx})" class="w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                            todo.done ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-300 hover:border-indigo-500"
+                        }">
                             ${todo.done ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
                         </button>
-                        <span class="text-sm ${todo.done ? 'line-through text-slate-400 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'}">${todo.text}</span>
+                        <span class="text-sm font-medium ${todo.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${todo.text}</span>
                     </div>
-                    <button onclick="deleteTodo(${idx})" class="p-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition text-rose-500 font-medium">
+                    <button onclick="deleteTodo(${idx})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
-                list.appendChild(li);
+                listContainer.appendChild(li);
             });
             lucide.createIcons();
         }
@@ -1739,9 +1693,11 @@
             getPlannerData(selectedDateStr).then(data => {
                 const todos = data ? (data.todos || []) : [];
                 todos.push({ text: text, done: false });
-                savePlannerData(selectedDateStr, { todos }).then(() => {
+                
+                savePlannerData(selectedDateStr, { todos: todos }).then(() => {
                     input.value = "";
                     loadSelectedDateData();
+                    showToast("할 일이 추가되었습니다.");
                 });
             });
         }
@@ -1752,7 +1708,7 @@
                 const todos = data.todos || [];
                 if (todos[idx]) {
                     todos[idx].done = !todos[idx].done;
-                    savePlannerData(selectedDateStr, { todos }).then(() => {
+                    savePlannerData(selectedDateStr, { todos: todos }).then(() => {
                         loadSelectedDateData();
                     });
                 }
@@ -1764,78 +1720,86 @@
                 if (!data) return;
                 const todos = data.todos || [];
                 todos.splice(idx, 1);
-                savePlannerData(selectedDateStr, { todos }).then(() => {
+                savePlannerData(selectedDateStr, { todos: todos }).then(() => {
                     loadSelectedDateData();
-                    showToast("할 일이 삭제되었습니다.");
+                    showToast("할 일을 삭제했습니다.");
                 });
             });
         }
 
-        // --- 8. 금일 작업사항 핸들러 ---
+        // --- 8. 세부 기능 구현: 금일 작업사항 타임라인 ---
         function saveWorkLogData(showToastAlert = false) {
             const status = document.getElementById("workStatus").value;
-            const summary = document.getElementById("workSummary").value;
-            const pending = document.getElementById("workPending").value;
-            const issues = document.getElementById("workIssues").value;
+            const summary = document.getElementById("workSummary").value.trim();
+            const pending = document.getElementById("workPending").value.trim();
+            const issues = document.getElementById("workIssues").value.trim();
 
             const timeline = {};
             const hours = ["09", "10", "11", "12", "14", "15", "16", "17", "18"];
             hours.forEach(h => {
-                const el = document.getElementById(`time-${h}`);
-                if (el) timeline[h] = el.value;
+                const val = document.getElementById(`time-${h}`).value.trim();
+                timeline[h] = val;
             });
 
-            savePlannerData(selectedDateStr, { work: { status, summary, pending, issues, timeline } }).then(() => {
-                if (showToastAlert) showToast("금일 작업 사항이 데이터베이스에 반영되었습니다.");
+            const workObj = { status, summary, pending, issues, timeline };
+
+            savePlannerData(selectedDateStr, { work: workObj }).then(() => {
+                if (showToastAlert) showToast("작업 일지가 깔끔히 저장되었습니다.");
             });
         }
 
         function debounceSaveWorkLog() {
             clearTimeout(workLogSaveTimeout);
             workLogSaveTimeout = setTimeout(() => {
-                saveWorkLogData(false);
+                saveWorkLogData();
             }, 1000);
         }
 
-        // --- 9. 습관 트래커 핸들러 ---
+        // --- 9. 세부 기능 구현: 습관 루틴 템플릿 ---
         function renderHabitList(checks) {
-            const list = document.getElementById("habitList");
+            const listContainer = document.getElementById("habitList");
             const emptyState = document.getElementById("habitEmptyState");
-            
-            list.innerHTML = "";
+            listContainer.innerHTML = "";
+
             if (globalHabits.length === 0) {
                 emptyState.classList.remove("hidden");
-                document.getElementById("habitProgressPercentage").innerText = "오늘 진행률: 0%";
-                document.getElementById("habitProgressBar").style.width = "0%";
+                updateHabitProgressVisuals(0);
                 return;
             }
             emptyState.classList.add("hidden");
 
             let checkedCount = 0;
-            globalHabits.forEach((habit, idx) => {
-                const isChecked = !!checks[habit];
+
+            globalHabits.forEach(habit => {
+                const isChecked = checks[habit] || false;
                 if (isChecked) checkedCount++;
 
                 const li = document.createElement("li");
-                li.className = "py-3.5 flex items-center justify-between gap-3 group";
+                li.className = "flex items-center justify-between py-3.5 group";
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <button onclick="toggleHabit('${habit}')" class="w-5.5 h-5.5 rounded-full border ${isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-700'} flex items-center justify-center transition">
+                        <button onclick="toggleHabitCheck('${habit}')" class="w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                            isChecked ? "bg-amber-500 border-amber-500 text-white" : "border-slate-300 hover:border-amber-500"
+                        }">
                             ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
                         </button>
-                        <span class="text-sm font-semibold ${isChecked ? 'text-slate-400 dark:text-slate-600 line-through' : 'text-slate-700 dark:text-slate-200'}">${habit}</span>
+                        <span class="text-sm font-medium ${isChecked ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${habit}</span>
                     </div>
-                    <button onclick="deleteGlobalHabit(${idx})" class="p-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 rounded transition">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                    <button onclick="deleteGlobalHabit('${habit}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
-                list.appendChild(li);
+                listContainer.appendChild(li);
             });
 
-            const ratio = Math.round((checkedCount / globalHabits.length) * 100) || 0;
-            document.getElementById("habitProgressPercentage").innerText = `오늘 진행률: ${ratio}%`;
-            document.getElementById("habitProgressBar").style.width = `${ratio}%`;
+            const percentage = globalHabits.length > 0 ? Math.round((checkedCount / globalHabits.length) * 100) : 0;
+            updateHabitProgressVisuals(percentage);
             lucide.createIcons();
+        }
+
+        function updateHabitProgressVisuals(percentage) {
+            document.getElementById("habitProgressPercentage").innerText = `오늘 진행률: ${percentage}%`;
+            document.getElementById("habitProgressBar").style.width = `${percentage}%`;
         }
 
         function addGlobalHabit() {
@@ -1844,60 +1808,534 @@
             if (!text) return;
 
             if (globalHabits.includes(text)) {
-                showToast("이미 동일한 습관 루틴이 등록되어 있습니다.");
+                showToast("이미 동등한 습관 목표가 목록에 수립되어 있습니다.");
                 return;
             }
 
             globalHabits.push(text);
             localStorage.setItem("tabPlanner_globalHabits", JSON.stringify(globalHabits));
             
-            input.value = "";
-            loadSelectedDateData();
-            showToast("새로운 일일 습관이 목록에 정규 바인딩되었습니다.");
+            getPlannerData(selectedDateStr).then(data => {
+                const checks = data ? (data.habitChecks || {}) : {};
+                input.value = "";
+                renderHabitList(checks);
+                showToast("새 습관 플랜이 목록에 주입되었습니다.");
+            });
         }
 
-        function toggleHabit(habit) {
+        function toggleHabitCheck(habit) {
             getPlannerData(selectedDateStr).then(data => {
                 const checks = data ? (data.habitChecks || {}) : {};
                 checks[habit] = !checks[habit];
+
                 savePlannerData(selectedDateStr, { habitChecks: checks }).then(() => {
-                    loadSelectedDateData();
+                    renderHabitList(checks);
                 });
             });
         }
 
-        function deleteGlobalHabit(idx) {
-            showConfirmModal("해당 루틴을 영구 삭제하시겠습니까?", () => {
-                globalHabits.splice(idx, 1);
-                localStorage.setItem("tabPlanner_globalHabits", JSON.stringify(globalHabits));
-                loadSelectedDateData();
-                showToast("선택된 습관 루틴이 삭제되었습니다.");
+        function deleteGlobalHabit(habit) {
+            globalHabits = globalHabits.filter(h => h !== habit);
+            localStorage.setItem("tabPlanner_globalHabits", JSON.stringify(globalHabits));
+
+            getPlannerData(selectedDateStr).then(data => {
+                const checks = data ? (data.habitChecks || {}) : {};
+                delete checks[habit]; // 해당 체크 데이터 일괄 소거
+
+                savePlannerData(selectedDateStr, { habitChecks: checks }).then(() => {
+                    renderHabitList(checks);
+                    showToast("루틴 일체 목록에서 제거 완료.");
+                });
             });
         }
 
-        // --- 10. 일기 및 기분 핸들러 ---
+        // --- 10. 세부 기능 구현: 감정 및 마인드 일기 ---
         function selectMoodButton(mood) {
             document.querySelectorAll(".mood-selector-btn").forEach(btn => {
-                btn.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-50/50", "dark:bg-emerald-950/20", "text-emerald-600", "dark:text-emerald-400");
-                btn.classList.add("bg-slate-50", "dark:bg-slate-800", "text-slate-500");
+                btn.className = "mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500";
             });
+
             if (mood) {
                 const activeBtn = document.getElementById(`mood-${mood}`);
                 if (activeBtn) {
-                    activeBtn.classList.remove("bg-slate-50", "dark:bg-slate-800", "text-slate-500");
-                    activeBtn.classList.add("ring-2", "ring-emerald-500", "bg-emerald-50/50", "dark:bg-emerald-950/20", "text-emerald-600", "dark:text-emerald-400");
+                    activeBtn.className = "mood-selector-btn p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 transition-all flex flex-col items-center gap-1 text-emerald-600 dark:text-emerald-400 shadow-md ring-2 ring-emerald-300";
                 }
             }
         }
 
-        function saveDiary() {
-            const text = document.getElementById("diaryContent").value;
-            savePlannerData(selectedDateStr, { diary: text }).then(() => {
-                showToast("오늘의 심경 일기가 안전하게 다이어리에 마킹되었습니다.");
+        // --- 11. 세부 기능 구현: 회의록 ---
+        function saveMeetingMinutes() {
+            const title = document.getElementById("meetingTitle").value.trim();
+            const attendees = document.getElementById("meetingAttendees").value.trim();
+            const decisions = document.getElementById("meetingDecisions").value.trim();
+            const notes = document.getElementById("meetingNotes").value.trim();
+
+            const meetingData = { title, attendees, decisions, notes };
+
+            savePlannerData(selectedDateStr, { meeting: meetingData }).then(() => {
+                showToast("회의록이 안전하게 저장되었습니다.");
             });
         }
 
-        // --- 11. 전체 기록 스캔 검색기 ---
+        function printMeetingMinutes() {
+            document.getElementById("printDateLabel").innerText = `작성 날짜: ${selectedDateStr}`;
+            window.print();
+        }
+
+        // --- 12. 세부 기능 구현: 펜슬 핸드라이팅 필기 (Pointer Events 표준 이식) ---
+        function initCanvas() {
+            canvas = document.getElementById("noteCanvas");
+            ctx = canvas.getContext("2d");
+
+            // 안드로이드 S펜 및 태블릿 동시 수용을 위한 통합 포인터 이벤트 바인딩
+            canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
+            canvas.addEventListener("pointermove", handlePointerMove, { passive: false });
+            canvas.addEventListener("pointerup", handlePointerUp, { passive: false });
+            canvas.addEventListener("pointercancel", handlePointerUp, { passive: false });
+            
+            handleCanvasResize();
+        }
+
+        function changeCanvasTemplate(template) {
+            currentTemplate = template;
+            canvas.className = "w-full h-full block cursor-crosshair transition-all";
+            
+            if (template !== 'none') {
+                canvas.classList.add(`bg-pattern-${template}`);
+            }
+            showToast(`${template.toUpperCase()} 패턴 가이드가 적용되었습니다.`);
+        }
+
+        function handleCanvasResize() {
+            if (!canvas) return;
+            const container = canvas.parentElement;
+            
+            if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
+                return;
+            }
+            
+            const tempImage = canvas.toDataURL();
+            
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            updatePenStyle();
+
+            const img = new Image();
+            img.onload = function() {
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0);
+                ctx.restore();
+            };
+            img.src = tempImage;
+        }
+
+        function adjustZoom(amount) {
+            scale = Math.max(0.5, Math.min(3.0, scale + amount));
+            document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+            redrawCanvasCurrentState();
+        }
+
+        function resetZoomAndPan() {
+            scale = 1.0;
+            panX = 0;
+            panY = 0;
+            document.getElementById("zoomPercent").innerText = "100%";
+            redrawCanvasCurrentState();
+            showToast("캔버스 비율과 위치를 최적화했습니다.");
+        }
+
+        function redrawCanvasCurrentState() {
+            getPlannerData(selectedDateStr).then(data => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (data && data.canvasImage) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.save();
+                        ctx.translate(panX, panY);
+                        ctx.scale(scale, scale);
+                        ctx.drawImage(img, 0, 0);
+                        ctx.restore();
+                    };
+                    img.src = data.canvasImage;
+                }
+            });
+        }
+
+        function toggleStraightLineAssist() {
+            straightLineAssist = !straightLineAssist;
+            const btn = document.getElementById("straightLineBtn");
+            if (straightLineAssist) {
+                btn.classList.add("bg-indigo-600", "text-white");
+                btn.classList.remove("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "직선 보정 On";
+                showToast("직선 그리기 보정 기능이 켜졌습니다.");
+            } else {
+                btn.classList.remove("bg-indigo-600", "text-white");
+                btn.classList.add("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "직선 보정 Off";
+                showToast("직선 그리기 보정 기능이 꺼졌습니다.");
+            }
+        }
+
+        function togglePalmGuard() {
+            const shield = document.getElementById("palmRestSafetyShield");
+            const btn = document.getElementById("palmGuardToggleBtn");
+            
+            if (shield.style.display === "none") {
+                shield.style.display = "flex";
+                btn.classList.add("bg-indigo-600", "text-white");
+                btn.classList.remove("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "손바닥 가드 On";
+                showToast("손바닥 방지 가드가 켜졌습니다. 하단 하이라이트 영역에 손을 올려두세요.");
+            } else {
+                shield.style.display = "none";
+                btn.classList.remove("bg-indigo-600", "text-white");
+                btn.classList.add("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "손바닥 가드 Off";
+                showToast("손바닥 방지 가드가 해제되었습니다.");
+            }
+        }
+
+        function updatePenStyle() {
+            if (!ctx) return;
+            
+            if (drawMode === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = "rgba(0,0,0,1)"; 
+                ctx.lineWidth = penWidth * scale; 
+            } else if (drawMode === 'highlighter') {
+                ctx.globalCompositeOperation = 'source-over';
+                
+                const hex = penColor.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                ctx.lineWidth = penWidth * 3.5 * scale; 
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = penWidth * scale;
+            }
+        }
+
+        function setDrawingMode(mode) {
+            drawMode = mode;
+            
+            const modes = ['pen', 'highlighter', 'eraser'];
+            modes.forEach(m => {
+                const btn = document.getElementById(`tool-${m}`);
+                if (m === mode) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-800/50";
+                }
+            });
+
+            const palette = document.getElementById("paletteContainer");
+            if (mode === 'eraser') {
+                palette.classList.add("opacity-30", "pointer-events-none");
+            } else {
+                palette.classList.remove("opacity-30", "pointer-events-none");
+            }
+
+            updatePenStyle();
+        }
+
+        function setPenColor(color) {
+            const isDark = document.documentElement.classList.contains("dark");
+            if (isDark && color === '#0f172a') {
+                penColor = '#f1f5f9';
+            } else {
+                penColor = color;
+            }
+            
+            updateActivePaletteRing();
+            updatePenStyle();
+        }
+
+        function updateActivePaletteRing() {
+            document.querySelectorAll(".color-btn").forEach(btn => {
+                btn.classList.remove("ring-2", "ring-indigo-500", "scale-110");
+                const bg = btn.title;
+                if ((bg === '기본 다크' && (penColor === '#0f172a' || penColor === '#f1f5f9')) ||
+                    (bg === '빨간색' && penColor === '#ef4444') ||
+                    (bg === '파란색' && penColor === '#3b82f6') ||
+                    (bg === '초록색' && penColor === '#10b981') ||
+                    (bg === '형광노랑' && penColor === '#eab308')) {
+                    btn.classList.add("ring-2", "ring-indigo-500", "scale-110");
+                }
+            });
+        }
+
+        function updateLineWidth(val) {
+            penWidth = parseInt(val);
+            document.getElementById("lineWidthVal").innerText = `${val}px`;
+            updatePenStyle();
+        }
+
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left - panX) / scale,
+                y: (e.clientY - rect.top - panY) / scale
+            };
+        }
+
+        // --- 12-2. 캔버스 로직: W3C Pointer Events 통합 핸들러 (S펜 하드웨어 Rejection 자동 내장) ---
+        function handlePointerDown(e) {
+            e.preventDefault();
+            canvas.setPointerCapture(e.pointerId);
+
+            const coords = getCanvasCoordinates(e);
+
+            // 1. 스타일러스 펜(S펜) 입력이 들어온 경우: 손가락 제스처 간섭을 원천 차단하고 순수 드로잉만 모드 활성화
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                isDrawing = true;
+                isPanning = false;
+                lastX = coords.x;
+                lastY = coords.y;
+
+                if (straightLineAssist) {
+                    strokeStartX = coords.x;
+                    strokeStartY = coords.y;
+                }
+            } 
+            // 2. 손가락(touch) 입력이 들어온 경우
+            else if (e.pointerType === 'touch') {
+                // S펜을 같이 대고 그리는 중이라면 햅틱 오터치로 취급하여 무시
+                if (isDrawing) return;
+
+                // 멀티터치 제스처 시작 (이동 및 줌)
+                isPanning = true;
+                lastTouchX = e.clientX;
+                lastTouchY = e.clientY;
+            }
+        }
+
+        function handlePointerMove(e) {
+            e.preventDefault();
+            if (!canvas.hasPointerCapture(e.pointerId)) return;
+
+            const coords = getCanvasCoordinates(e);
+
+            // S펜 드로잉 작동 구역
+            if (isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+                updatePenStyle();
+
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+
+                if (straightLineAssist) {
+                    redrawCanvasCurrentState();
+                    ctx.beginPath();
+                    ctx.moveTo(strokeStartX, strokeStartY);
+                    ctx.lineTo(coords.x, coords.y);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                    ctx.lineTo(coords.x, coords.y);
+                    ctx.stroke();
+                    
+                    lastX = coords.x;
+                    lastY = coords.y;
+                }
+
+                ctx.restore();
+            } 
+            // 손가락 화면 이동(Panning) 구역
+            else if (isPanning && e.pointerType === 'touch') {
+                const deltaX = e.clientX - lastTouchX;
+                const deltaY = e.clientY - lastTouchY;
+
+                panX += deltaX;
+                panY += deltaY;
+
+                lastTouchX = e.clientX;
+                lastTouchY = e.clientY;
+
+                redrawCanvasCurrentState();
+            }
+        }
+
+        function handlePointerUp(e) {
+            e.preventDefault();
+            if (!canvas.hasPointerCapture(e.pointerId)) return;
+            canvas.releasePointerCapture(e.pointerId);
+
+            if (isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+                if (straightLineAssist) {
+                    const coords = getCanvasCoordinates(e);
+                    ctx.save();
+                    ctx.translate(panX, panY);
+                    ctx.scale(scale, scale);
+                    
+                    redrawCanvasCurrentState();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(strokeStartX, strokeStartY);
+                    ctx.lineTo(coords.x, coords.y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                isDrawing = false;
+            }
+
+            if (e.pointerType === 'touch') {
+                isPanning = false;
+            }
+        }
+
+        // 모바일 사파리 및 일부 구버전 안드로이드 대응을 위한 핀치 줌 제스처 리스너 보조 추가
+        function handleTouchStart(e) {
+            if (e.touches.length === 2) {
+                isDrawing = false;
+                isPanning = true;
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                startTouchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                lastTouchX = (t1.clientX + t2.clientX) / 2;
+                lastTouchY = (t1.clientY + t2.clientY) / 2;
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (isPanning && e.touches.length === 2) {
+                e.preventDefault();
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+
+                const currentDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                const zoomFactor = currentDistance / startTouchDistance;
+                
+                const previousScale = scale;
+                scale = Math.max(0.5, Math.min(3.0, previousScale * zoomFactor));
+                document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+
+                const currentTouchX = (t1.clientX + t2.clientX) / 2;
+                const currentTouchY = (t1.clientY + t2.clientY) / 2;
+
+                panX += (currentTouchX - lastTouchX);
+                panY += (currentTouchY - lastTouchY);
+
+                startTouchDistance = currentDistance;
+                lastTouchX = currentTouchX;
+                lastTouchY = currentTouchY;
+
+                redrawCanvasCurrentState();
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (e.touches.length < 2) {
+                isPanning = false;
+            }
+        }
+
+        function promptClearCanvas() {
+            showConfirmModal("정말로 필기를 전체 삭제하시겠습니까?", () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                showToast("캔버스가 깨끗이 비워졌습니다.");
+            });
+        }
+
+        function saveCanvas() {
+            const dataUrl = canvas.toDataURL("image/png");
+            const isCanvasBlank = isCanvasEmpty();
+            const imageToSave = isCanvasBlank ? null : dataUrl;
+
+            savePlannerData(selectedDateStr, { canvasImage: imageToSave }).then(() => {
+                showToast("필기가 정상 저장되었습니다.");
+            });
+        }
+
+        function isCanvasEmpty() {
+            const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+            return !buffer.some(color => color !== 0);
+        }
+
+        function loadCanvasImage(dataUrl) {
+            const loader = document.getElementById("canvasLoader");
+            loader.classList.remove("hidden");
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (dataUrl) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.save();
+                    ctx.translate(panX, panY);
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, 0, 0);
+                    ctx.restore();
+                    loader.classList.add("hidden");
+                };
+                img.src = dataUrl;
+            } else {
+                setTimeout(() => {
+                    loader.classList.add("hidden");
+                }, 200);
+            }
+        }
+
+        function downloadHandwriting() {
+            const exportCanvas = document.createElement("canvas");
+            exportCanvas.width = canvas.width;
+            exportCanvas.height = canvas.height;
+            const exportCtx = exportCanvas.getContext("2d");
+
+            const isDark = document.documentElement.classList.contains("dark");
+            exportCtx.fillStyle = isDark ? "#0f172a" : "#ffffff";
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            if (currentTemplate !== 'none') {
+                exportCtx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)";
+                exportCtx.lineWidth = 1;
+                
+                if (currentTemplate === 'grid') {
+                    const step = 24;
+                    for (let x = 0; x < exportCanvas.width; x += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(x, 0); exportCtx.lineTo(x, exportCanvas.height); exportCtx.stroke();
+                    }
+                    for (let y = 0; y < exportCanvas.height; y += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
+                    }
+                } else if (currentTemplate === 'line') {
+                    const step = 28;
+                    for (let y = step; y < exportCanvas.height; y += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
+                    }
+                } else if (currentTemplate === 'dot') {
+                    const step = 20;
+                    exportCtx.fillStyle = isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
+                    for (let x = step; x < exportCanvas.width; x += step) {
+                        for (let y = step; y < exportCanvas.height; y += step) {
+                            exportCtx.beginPath();
+                            exportCtx.arc(x, y, 1.2, 0, Math.PI * 2);
+                            exportCtx.fill();
+                        }
+                    }
+                }
+            }
+
+            exportCtx.drawImage(canvas, 0, 0);
+
+            const link = document.createElement("a");
+            link.download = `TabPlanner_Drawing_${selectedDateStr}.png`;
+            link.href = exportCanvas.toDataURL("image/png");
+            link.click();
+            showToast("필기지가 성공적으로 추출되었습니다.");
+        }
+
+        // --- 13. 스마트 통합 검색 스캐너 ---
         function debounceSearch() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(globalSearch, 300);
@@ -1906,7 +2344,7 @@
         function globalSearch() {
             const query = document.getElementById("globalSearchInput").value.trim().toLowerCase();
             const resultsArea = document.getElementById("searchResultsArea");
-            const resultsList = document.getElementById("searchResultsList");
+            const Blacklist = document.getElementById("searchResultsList");
             const clearBtn = document.getElementById("clearSearchBtn");
 
             if (!query) {
@@ -1916,7 +2354,7 @@
 
             clearBtn.classList.remove("hidden");
             resultsArea.classList.remove("hidden");
-            resultsList.innerHTML = `<li class="py-2 text-center text-slate-400 text-xs">스캐너 스캔 중...</li>`;
+            Blacklist.innerHTML = `<li class="py-2 text-center text-slate-400 text-xs">스캐너 스캔 중...</li>`;
 
             if (!db) return;
 
@@ -1962,7 +2400,7 @@
                     }
                 };
             } catch (e) {
-                console.error("검색 중 에러: ", e);
+                console.error("검색 오작동 대처 완료: ", e);
             }
         }
 
@@ -1995,7 +2433,7 @@
             document.getElementById("clearSearchBtn").classList.add("hidden");
         }
 
-        // --- 12. 월간 종합 통계 대시보드 ---
+        // --- 14. 월간 종합 분석 대시보드 렌더러 ---
         function renderDashboard() {
             if (!db) return;
             const year = currentDate.getFullYear();
@@ -2114,184 +2552,163 @@
                     }
                 };
             } catch (e) {
-                console.error("대시보드 통계 계산 오류: ", e);
+                console.error("대시보드 통계 계산 중 에러: ", e);
             }
         }
 
-        // --- 13. 집중 타이머 & 빗소리 노이즈 발생 엔진 ---
-        function toggleFocusWidgetExpand() {
-            const widget = document.getElementById("focusWidget");
-            const arrow = document.getElementById("focusWidgetArrow");
-            if (isWidgetExpanded) {
-                widget.classList.remove("max-h-[300px]");
-                widget.classList.add("max-h-[50px]");
-                arrow.classList.remove("rotate-180");
-            } else {
-                widget.classList.remove("max-h-[50px]");
-                widget.classList.add("max-h-[300px]");
-                arrow.classList.add("rotate-180");
-            }
-            isWidgetExpanded = !isWidgetExpanded;
-        }
-
-        function adjustFocusTime(amountSec) {
-            if (isPomodoroRunning) return;
-            focusSecondsLeft = Math.max(60, focusSecondsLeft + amountSec);
-            updateTimerDisplay();
-        }
-
-        function updateTimerDisplay() {
-            const mins = String(Math.floor(focusSecondsLeft / 60)).padStart(2, '0');
-            const secs = String(focusSecondsLeft % 60).padStart(2, '0');
-            const timeStr = `${mins}:${secs}`;
-            document.getElementById("focusTimeDisplay").innerText = timeStr;
-            document.getElementById("focusTimeMain").innerText = timeStr;
-        }
-
-        function togglePomodoroTimer() {
-            const pulse = document.getElementById("focusPulse");
-            const startBtn = document.getElementById("focusStartBtn");
-            const title = document.getElementById("focusWidgetTitle");
-
-            if (isPomodoroRunning) {
-                clearInterval(pomodoroTimer);
-                isPomodoroRunning = false;
-                pulse.classList.remove("bg-rose-500", "animate-ping");
-                pulse.classList.add("bg-slate-300");
-                startBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
-                title.innerText = "집중 정지됨";
-            } else {
-                isPomodoroRunning = true;
-                pulse.classList.remove("bg-slate-300");
-                pulse.classList.add("bg-rose-500", "animate-ping");
-                startBtn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> 일시정지`;
-                title.innerText = "🎯 고도 집중 모드";
-                
-                pomodoroTimer = setInterval(() => {
-                    if (focusSecondsLeft > 0) {
-                        focusSecondsLeft--;
-                        updateTimerDisplay();
-                    } else {
-                        clearInterval(pomodoroTimer);
-                        isPomodoroRunning = false;
-                        pulse.classList.remove("bg-rose-500", "animate-ping");
-                        pulse.classList.add("bg-emerald-500");
-                        startBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
-                        title.innerText = "집중 완료!";
-                        showToast("집중 세션 완료! 시원하게 환기 한 번 하세요.");
-                        playBellSound();
-                    }
-                }, 1000);
-            }
-            lucide.createIcons();
-        }
-
-        function resetPomodoroTimer() {
-            clearInterval(pomodoroTimer);
-            isPomodoroRunning = false;
-            focusSecondsLeft = 1500;
-            updateTimerDisplay();
+        // --- 15. 작업대 탭 이동 매니지먼트 ---
+        function switchTab(tabId) {
+            activeTab = tabId;
             
-            const pulse = document.getElementById("focusPulse");
-            pulse.className = "w-2.5 h-2.5 bg-slate-300 rounded-full";
-            document.getElementById("focusStartBtn").innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
-            document.getElementById("focusWidgetTitle").innerText = "집중 타이머 & 백색 소음";
-            lucide.createIcons();
+            const tabs = ["todo", "work", "habit", "mood", "meeting", "note", "pencil", "ai", "dashboard"];
+            tabs.forEach(t => {
+                const tabBtn = document.getElementById(`tab-${t}`);
+                const tabContent = document.getElementById(`content-${t}`);
+                
+                if (t === tabId) {
+                    tabBtn.className = "py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabContent.classList.remove("hidden");
+                    tabContent.classList.add("block");
+                } else {
+                    tabBtn.className = "py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabContent.classList.remove("block");
+                    tabContent.classList.add("hidden");
+                }
+            });
+
+            if (tabId === "pencil") {
+                setTimeout(() => {
+                    handleCanvasResize();
+                    getPlannerData(selectedDateStr).then(data => {
+                        loadCanvasImage(data ? data.canvasImage : null);
+                        if (currentTemplate !== 'none') changeCanvasTemplate(currentTemplate);
+                    });
+                }, 100);
+            } else if (tabId === "dashboard") {
+                renderDashboard();
+            }
         }
 
-        function toggleWhiteNoise() {
-            const btn = document.getElementById("noiseToggleBtn");
-            if (isWhiteNoisePlaying) {
-                stopRainNoise();
-                btn.innerText = "빗소리 재생";
-                btn.className = "text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:underline";
+        function setDayMood(moodType) {
+            savePlannerData(selectedDateStr, { mood: moodType }).then(() => {
+                selectMoodButton(moodType);
+                showToast("오늘 하루 나의 기분이 성공적으로 기록되었습니다.");
+            });
+        }
+
+        function saveDiary() {
+            const text = document.getElementById("diaryContent").value;
+            savePlannerData(selectedDateStr, { diary: text }).then(() => {
+                showToast("오늘의 심경 일기가 안전하게 다이어리에 마킹되었습니다.");
+            });
+        }
+
+        function saveNoteData() {
+            const content = document.getElementById("noteContent").value;
+            savePlannerData(selectedDateStr, { note: content }).then(() => {
+                document.getElementById("noteSavedStatus").innerText = "안전하게 저장됨";
+            });
+        }
+
+        function debounceSaveNote() {
+            document.getElementById("noteSavedStatus").innerText = "기록 중...";
+            clearTimeout(noteSaveTimeout);
+            noteSaveTimeout = setTimeout(() => {
+                saveNoteData();
+            }, 1000);
+        }
+
+        // --- 16. 음성 인식 기틀 마련 ---
+        function initSpeechRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (window.SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'ko-KR';
+
+                recognition.onresult = function(e) {
+                    if (!activeSttTargetId) return;
+                    const el = document.getElementById(activeSttTargetId);
+                    
+                    let resultText = "";
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) {
+                            resultText += e.results[i][0].transcript + " ";
+                        }
+                    }
+
+                    if (resultText) {
+                        el.value = el.value.trim() + " " + resultText.trim();
+                        if (activeSttTargetId === "noteContent") {
+                            debounceSaveNote();
+                        }
+                    }
+                };
+
+                recognition.onerror = function(e) {
+                    console.error("음성 인식 오류 발생:", e.error);
+                    stopSpeechRecognition();
+                };
+
+                recognition.onend = function() {
+                    stopSpeechRecognition();
+                };
+            }
+        }
+
+        function toggleSpeechToText(targetTextAreaId) {
+            if (!recognition) {
+                showToast("죄송합니다. 현재 브라우저는 음성 인식을 지원하지 않습니다.");
+                return;
+            }
+
+            if (activeSttTargetId === targetTextAreaId) {
+                stopSpeechRecognition();
+                showToast("음성 받아쓰기를 종료했습니다.");
             } else {
-                startRainNoise();
-                btn.innerText = "소음기 끄기";
-                btn.className = "text-[10px] font-black text-rose-500 hover:underline";
+                stopSpeechRecognition();
+                
+                activeSttTargetId = targetTextAreaId;
+                recognition.start();
+
+                const indicator = document.getElementById(`stt-status-${targetTextAreaId}`);
+                if (indicator) indicator.classList.remove("hidden");
+
+                const btn = targetTextAreaId === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
+                if (btn) {
+                    btn.classList.add("bg-rose-500", "text-white");
+                    btn.classList.remove("bg-rose-50", "text-rose-600");
+                    const span = btn.querySelector("span");
+                    if (span) span.innerText = "기록 중지";
+                }
+
+                showToast("말씀하시면 실시간으로 받아적습니다.");
             }
         }
 
-        function startRainNoise() {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-
-                const bufferSize = 2 * audioCtx.sampleRate;
-                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-
-                let lastOut = 0.0;
-                for (let i = 0; i < bufferSize; i++) {
-                    const white = Math.random() * 2 - 1;
-                    output[i] = (lastOut * 0.985 + white * 0.015);
-                    lastOut = output[i];
-                    output[i] *= 4.0; 
-                }
-
-                noiseNode = audioCtx.createBufferSource();
-                noiseNode.buffer = noiseBuffer;
-                noiseNode.loop = true;
-
-                filterNode = audioCtx.createBiquadFilter();
-                filterNode.type = 'lowpass';
-                filterNode.frequency.value = 450; 
-
-                gainNode = audioCtx.createGain();
-                const volVal = document.getElementById("noiseVolume").value / 100;
-                gainNode.gain.setValueAtTime(volVal, audioCtx.currentTime);
-
-                noiseNode.connect(filterNode);
-                filterNode.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                noiseNode.start();
-                isWhiteNoisePlaying = true;
-            } catch(e) {
-                console.error("Audio Context 구동 에러: ", e);
-            }
-        }
-
-        function stopRainNoise() {
-            if (noiseNode) {
+        function stopSpeechRecognition() {
+            if (recognition && activeSttTargetId) {
                 try {
-                    noiseNode.stop();
-                    noiseNode.disconnect();
-                } catch(e){}
-                noiseNode = null;
-            }
-            isWhiteNoisePlaying = false;
-        }
-
-        function changeNoiseVolume(val) {
-            if (gainNode && audioCtx) {
-                gainNode.gain.setValueAtTime(val / 100, audioCtx.currentTime);
-            }
-        }
-
-        function playBellSound() {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                    recognition.stop();
+                } catch(e) {}
                 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
-                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.8);
-                
-                osc.start();
-                osc.stop(audioCtx.currentTime + 1.8);
-            } catch(e){}
+                const prevTarget = activeSttTargetId;
+                activeSttTargetId = null;
+
+                const indicator = document.getElementById(`stt-status-${prevTarget}`);
+                if (indicator) indicator.classList.add("hidden");
+
+                const btn = prevTarget === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
+                if (btn) {
+                    btn.classList.remove("bg-rose-500", "text-white");
+                    btn.classList.add("bg-rose-50", "text-rose-600");
+                    const span = btn.querySelector("span");
+                    if (span) span.innerText = "받아쓰기";
+                }
+            }
         }
 
-        // --- 14. 스마트 AI 비서 분석 엔진 (Gemini 2.5 Flash API 활용) ---
         function setAiTask(task) {
             aiTask = task;
             
@@ -2359,12 +2776,12 @@
                     sourceText += `[텍스트 메모 내용]: ${textNote}\n\n`;
                 }
                 if (diaryContent || currentMoodVal) {
-                    sourceText += `[오늘의 감정]: ${currentMoodText}\n[감정 일기]: ${diaryContent}\n\n`;
+                    sourceText += `[오늘의 자아 감정]: ${currentMoodText}\n[오늘의 감정 일기]: ${diaryContent}\n\n`;
                 }
             }
 
             if (!sourceText.trim()) {
-                showToast("분석할 오늘의 텍스트 기록 데이터가 전혀 발견되지 않았습니다.");
+                showToast("분석할 작업 일지, 회의록 혹은 감정 일기 내용이 전혀 없습니다.");
                 return;
             }
 
@@ -2430,7 +2847,7 @@
             loader.classList.add("hidden");
 
             if (!success) {
-                container.innerHTML = `<p class="text-rose-500 font-bold text-center py-8">AI 스마트 어시스턴트 호출에 실패했습니다. API 키 정보가 비어있거나 올바르지 않습니다.</p>`;
+                container.innerHTML = `<p class="text-rose-500 font-bold text-center py-8">AI 비서 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>`;
                 return;
             }
 
@@ -2438,8 +2855,8 @@
             const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (aiText) {
-                container.innerHTML = aiText.replace(/\n/g, "<br>").replace(/### (.*?)<br>/g, "<h3 class='text-sm font-bold text-slate-800 dark:text-white mt-4 border-b border-slate-100 dark:border-slate-800 pb-1'>$1</h3>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-                document.getElementById("aiTimeLabel").innerText = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + " 완료";
+                container.innerHTML = aiText;
+                document.getElementById("aiTimeLabel").innerText = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + " 분석 완료";
 
                 if (aiTask === "summarize") {
                     parseExtractedTodos(aiText);
@@ -2448,7 +2865,7 @@
                     }
                 }
             } else {
-                container.innerHTML = `<p class="text-slate-400 text-center py-8">결과물을 수신하지 못했습니다.</p>`;
+                container.innerHTML = `<p class="text-slate-400 text-center py-8">분석 결과를 받아오지 못했습니다.</p>`;
             }
         }
 
@@ -2481,634 +2898,13 @@
 
                 savePlannerData(selectedDateStr, { todos: currentTodos }).then(() => {
                     loadSelectedDateData();
-                    showToast(`성공적으로 ${aiExtractedTodosCache.length}개의 할 일을 오늘의 To-Do 리스트에 통합 등록했습니다.`);
+                    showToast(`성공적으로 ${aiExtractedTodosCache.length}개의 할 일을 오늘의 투두에 등록했습니다!`);
                     document.getElementById("applyTodosBtn").classList.add("hidden");
                 });
             });
         }
 
-        // --- 15. 회의록 수동 핸들러 ---
-        function saveMeetingMinutes() {
-            const title = document.getElementById("meetingTitle").value.trim();
-            const attendees = document.getElementById("meetingAttendees").value.trim();
-            const decisions = document.getElementById("meetingDecisions").value.trim();
-            const notes = document.getElementById("meetingNotes").value.trim();
-
-            savePlannerData(selectedDateStr, { meeting: { title, attendees, decisions, notes } }).then(() => {
-                showToast("회의록이 로컬 임시 보관소에 안전하게 마크되었습니다.");
-            });
-        }
-
-        function printMeetingMinutes() {
-            document.getElementById("printDateLabel").innerText = `작성 날짜: ${selectedDateStr}`;
-            window.print();
-        }
-
-        // --- 16. 텍스트 메모 수동 핸들러 ---
-        function saveNoteData() {
-            const content = document.getElementById("noteContent").value;
-            savePlannerData(selectedDateStr, { note: content }).then(() => {
-                document.getElementById("noteSavedStatus").innerText = "안전하게 저장됨";
-            });
-        }
-
-        function debounceSaveNote() {
-            document.getElementById("noteSavedStatus").innerText = "기록 중...";
-            clearTimeout(noteSaveTimeout);
-            noteSaveTimeout = setTimeout(() => {
-                saveNoteData();
-            }, 1000);
-        }
-
-        // --- 17. 음성 인식 제어 바인더 ---
-        function initSpeechRecognition() {
-            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (window.SpeechRecognition) {
-                recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'ko-KR';
-
-                recognition.onresult = function(e) {
-                    if (!activeSttTargetId) return;
-                    const el = document.getElementById(activeSttTargetId);
-                    
-                    let resultText = "";
-                    for (let i = e.resultIndex; i < e.results.length; i++) {
-                        if (e.results[i].isFinal) {
-                            resultText += e.results[i][0].transcript + " ";
-                        }
-                    }
-
-                    if (resultText) {
-                        el.value = el.value.trim() + " " + resultText.trim();
-                        if (activeSttTargetId === "noteContent") {
-                            debounceSaveNote();
-                        }
-                    }
-                };
-
-                recognition.onerror = function(e) {
-                    console.error("음성인식 엔진 오류:", e.error);
-                    stopSpeechRecognition();
-                };
-
-                recognition.onend = function() {
-                    stopSpeechRecognition();
-                };
-            }
-        }
-
-        function toggleSpeechToText(targetTextAreaId) {
-            if (!recognition) {
-                showToast("현재 기기 및 브라우저는 음성 받아쓰기를 지원하지 않습니다.");
-                return;
-            }
-
-            if (activeSttTargetId === targetTextAreaId) {
-                stopSpeechRecognition();
-                showToast("음성 받아쓰기를 종료했습니다.");
-            } else {
-                stopSpeechRecognition();
-                
-                activeSttTargetId = targetTextAreaId;
-                recognition.start();
-
-                const indicator = document.getElementById(`stt-status-${targetTextAreaId}`);
-                if (indicator) indicator.classList.remove("hidden");
-
-                const btn = targetTextAreaId === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
-                if (btn) {
-                    btn.classList.add("bg-rose-500", "text-white");
-                    btn.classList.remove("bg-rose-50", "text-rose-600");
-                    const span = btn.querySelector("span");
-                    if (span) span.innerText = "기록 중지";
-                }
-
-                showToast("말씀하시면 실시간으로 안전하게 기입합니다.");
-            }
-        }
-
-        function stopSpeechRecognition() {
-            if (recognition && activeSttTargetId) {
-                try {
-                    recognition.stop();
-                } catch(e) {}
-                
-                const prevTarget = activeSttTargetId;
-                activeSttTargetId = null;
-
-                const indicator = document.getElementById(`stt-status-${prevTarget}`);
-                if (indicator) indicator.classList.add("hidden");
-
-                const btn = prevTarget === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
-                if (btn) {
-                    btn.classList.remove("bg-rose-500", "text-white");
-                    btn.classList.add("bg-rose-50", "text-rose-600");
-                    const span = btn.querySelector("span");
-                    if (span) span.innerText = "받아쓰기";
-                }
-            }
-        }
-
-        // --- 18. 스마트 펜슬 필기 캔버스 엔진 ---
-        function initCanvas() {
-            canvas = document.getElementById("noteCanvas");
-            ctx = canvas.getContext("2d");
-
-            canvas.addEventListener("mousedown", startDrawing);
-            canvas.addEventListener("mousemove", draw);
-            canvas.addEventListener("mouseup", stopDrawing);
-            canvas.addEventListener("mouseout", stopDrawing);
-
-            canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
-            canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
-            canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
-            
-            handleCanvasResize();
-        }
-
-        function changeCanvasTemplate(template) {
-            currentTemplate = template;
-            canvas.className = "w-full h-full block cursor-crosshair transition-all";
-            
-            if (template !== 'none') {
-                canvas.classList.add(`bg-pattern-${template}`);
-            }
-            showToast(`${template.toUpperCase()} 격자 서식이 캔버스 배경에 안착되었습니다.`);
-        }
-
-        function handleCanvasResize() {
-            if (!canvas) return;
-            const container = canvas.parentElement;
-            
-            if (!container || container.clientWidth === 0 || container.clientHeight === 0) return;
-            
-            const tempImage = canvas.toDataURL();
-            
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            updatePenStyle();
-
-            const img = new Image();
-            img.onload = function() {
-                ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(scale, scale);
-                ctx.drawImage(img, 0, 0);
-                ctx.restore();
-            };
-            img.src = tempImage;
-        }
-
-        function adjustZoom(amount) {
-            scale = Math.max(0.5, Math.min(3.0, scale + amount));
-            document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
-            redrawCanvasCurrentState();
-        }
-
-        function resetZoomAndPan() {
-            scale = 1.0;
-            panX = 0;
-            panY = 0;
-            document.getElementById("zoomPercent").innerText = "100%";
-            redrawCanvasCurrentState();
-            showToast("캔버스 비율과 위치를 최적화했습니다.");
-        }
-
-        function redrawCanvasCurrentState() {
-            getPlannerData(selectedDateStr).then(data => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                if (data && data.canvasImage) {
-                    const img = new Image();
-                    img.onload = function() {
-                        ctx.save();
-                        ctx.translate(panX, panY);
-                        ctx.scale(scale, scale);
-                        ctx.drawImage(img, 0, 0);
-                        ctx.restore();
-                    };
-                    img.src = data.canvasImage;
-                }
-            });
-        }
-
-        function toggleStraightLineAssist() {
-            straightLineAssist = !straightLineAssist;
-            const btn = document.getElementById("straightLineBtn");
-            if (straightLineAssist) {
-                btn.classList.add("bg-indigo-600", "text-white");
-                btn.classList.remove("bg-slate-100", "text-slate-500");
-                btn.querySelector("span").innerText = "직선 보정 On";
-                showToast("직선 그리기 자동 보정 가이드가 켜졌습니다.");
-            } else {
-                btn.classList.remove("bg-indigo-600", "text-white");
-                btn.classList.add("bg-slate-100", "text-slate-500");
-                btn.querySelector("span").innerText = "직선 보정 Off";
-                showToast("직선 그리기 자동 보정 가이드가 꺼졌습니다.");
-            }
-        }
-
-        function updatePenStyle() {
-            if (!ctx) return;
-            
-            if (drawMode === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.strokeStyle = "rgba(0,0,0,1)"; 
-                ctx.lineWidth = penWidth * scale; 
-            } else if (drawMode === 'highlighter') {
-                ctx.globalCompositeOperation = 'source-over';
-                
-                const hex = penColor.replace('#', '');
-                const r = parseInt(hex.substring(0, 2), 16);
-                const g = parseInt(hex.substring(2, 4), 16);
-                const b = parseInt(hex.substring(4, 6), 16);
-                
-                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.35)`;
-                ctx.lineWidth = penWidth * 3.5 * scale; 
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = penColor;
-                ctx.lineWidth = penWidth * scale;
-            }
-        }
-
-        function setDrawingMode(mode) {
-            drawMode = mode;
-            
-            const modes = ['pen', 'highlighter', 'eraser'];
-            modes.forEach(m => {
-                const btn = document.getElementById(`tool-${m}`);
-                if (m === mode) {
-                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-800/50";
-                }
-            });
-
-            const palette = document.getElementById("paletteContainer");
-            if (mode === 'eraser') {
-                palette.classList.add("opacity-30", "pointer-events-none");
-            } else {
-                palette.classList.remove("opacity-30", "pointer-events-none");
-            }
-
-            updatePenStyle();
-        }
-
-        function setPenColor(color) {
-            const isDark = document.documentElement.classList.contains("dark");
-            if (isDark && color === '#0f172a') {
-                penColor = '#f1f5f9';
-            } else {
-                penColor = color;
-            }
-            
-            updateActivePaletteRing();
-            updatePenStyle();
-        }
-
-        function updateActivePaletteRing() {
-            document.querySelectorAll(".color-btn").forEach(btn => {
-                btn.classList.remove("ring-2", "ring-indigo-500", "scale-110");
-                const bg = btn.title;
-                if ((bg === '기본 다크' && (penColor === '#0f172a' || penColor === '#f1f5f9')) ||
-                    (bg === '빨간색' && penColor === '#ef4444') ||
-                    (bg === '파란색' && penColor === '#3b82f6') ||
-                    (bg === '초록색' && penColor === '#10b981') ||
-                    (bg === '형광노랑' && penColor === '#eab308')) {
-                    btn.classList.add("ring-2", "ring-indigo-500", "scale-110");
-                }
-            });
-        }
-
-        function updateLineWidth(val) {
-            penWidth = parseInt(val);
-            document.getElementById("lineWidthVal").innerText = `${val}px`;
-            updatePenStyle();
-        }
-
-        function getCanvasCoordinates(e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: (e.clientX - rect.left - panX) / scale,
-                y: (e.clientY - rect.top - panY) / scale
-            };
-        }
-
-        function startDrawing(e) {
-            isDrawing = true;
-            const coords = getCanvasCoordinates(e);
-            lastX = coords.x;
-            lastY = coords.y;
-
-            if (straightLineAssist) {
-                strokeStartX = coords.x;
-                strokeStartY = coords.y;
-            }
-        }
-
-        function draw(e) {
-            if (!isDrawing) return;
-            const coords = getCanvasCoordinates(e);
-
-            updatePenStyle();
-
-            ctx.save();
-            ctx.translate(panX, panY);
-            ctx.scale(scale, scale);
-
-            if (straightLineAssist) {
-                redrawCanvasCurrentState();
-                ctx.beginPath();
-                ctx.strokeStyle = drawMode === 'eraser' ? "rgba(0,0,0,0.5)" : penColor;
-                ctx.lineWidth = penWidth;
-                ctx.moveTo(strokeStartX, strokeStartY);
-                ctx.lineTo(coords.x, coords.y);
-                ctx.stroke();
-            } else {
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(coords.x, coords.y);
-                ctx.stroke();
-                
-                lastX = coords.x;
-                lastY = coords.y;
-            }
-
-            ctx.restore();
-        }
-
-        function stopDrawing(e) {
-            if (!isDrawing) return;
-            
-            if (straightLineAssist && e) {
-                const coords = getCanvasCoordinates(e);
-                ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(scale, scale);
-                
-                redrawCanvasCurrentState();
-                
-                ctx.beginPath();
-                ctx.moveTo(strokeStartX, strokeStartY);
-                ctx.lineTo(coords.x, coords.y);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            isDrawing = false;
-        }
-
-        // --- 19. 멀티터치 제스처 제어 ---
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-
-            if (e.touches.length === 1 && !isPanning) {
-                isDrawing = true;
-                const touch = e.touches[0];
-                lastX = (touch.clientX - rect.left - panX) / scale;
-                lastY = (touch.clientY - rect.top - panY) / scale;
-
-                if (straightLineAssist) {
-                    strokeStartX = lastX;
-                    strokeStartY = lastY;
-                }
-            } else if (e.touches.length === 2) {
-                isDrawing = false;
-                isPanning = true;
-
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-
-                startTouchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-                lastTouchX = (t1.clientX + t2.clientX) / 2;
-                lastTouchY = (t1.clientY + t2.clientY) / 2;
-            }
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-
-            if (isDrawing && e.touches.length === 1) {
-                const touch = e.touches[0];
-                const currentX = (touch.clientX - rect.left - panX) / scale;
-                const currentY = (touch.clientY - rect.top - panY) / scale;
-
-                updatePenStyle();
-
-                ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(scale, scale);
-
-                if (straightLineAssist) {
-                    redrawCanvasCurrentState();
-                    ctx.beginPath();
-                    ctx.moveTo(strokeStartX, strokeStartY);
-                    ctx.lineTo(currentX, currentY);
-                    ctx.stroke();
-                } else {
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(currentX, currentY);
-                    ctx.stroke();
-
-                    lastX = currentX;
-                    lastY = currentY;
-                }
-
-                ctx.restore();
-            } else if (isPanning && e.touches.length === 2) {
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-
-                const currentDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-                const zoomFactor = currentDistance / startTouchDistance;
-                
-                const previousScale = scale;
-                scale = Math.max(0.5, Math.min(3.0, previousScale * zoomFactor));
-                document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
-
-                const currentTouchX = (t1.clientX + t2.clientX) / 2;
-                const currentTouchY = (t1.clientY + t2.clientY) / 2;
-
-                panX += (currentTouchX - lastTouchX);
-                panY += (currentTouchY - lastTouchY);
-
-                startTouchDistance = currentDistance;
-                lastTouchX = currentTouchX;
-                lastTouchY = currentTouchY;
-
-                redrawCanvasCurrentState();
-            }
-        }
-
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            if (isDrawing && straightLineAssist && e.changedTouches.length > 0) {
-                const rect = canvas.getBoundingClientRect();
-                const touch = e.changedTouches[0];
-                const finalX = (touch.clientX - rect.left - panX) / scale;
-                const finalY = (touch.clientY - rect.top - panY) / scale;
-
-                ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(scale, scale);
-                
-                redrawCanvasCurrentState();
-                
-                ctx.beginPath();
-                ctx.moveTo(strokeStartX, strokeStartY);
-                ctx.lineTo(finalX, finalY);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            isDrawing = false;
-            if (e.touches.length < 2) {
-                isPanning = false;
-            }
-        }
-
-        function promptClearCanvas() {
-            showConfirmModal("정말로 필기를 전체 삭제하시겠습니까?", () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                showToast("캔버스가 깨끗이 비워졌습니다.");
-            });
-        }
-
-        function saveCanvas() {
-            const dataUrl = canvas.toDataURL("image/png");
-            const isCanvasBlank = isCanvasEmpty();
-            const imageToSave = isCanvasBlank ? null : dataUrl;
-
-            savePlannerData(selectedDateStr, { canvasImage: imageToSave }).then(() => {
-                showToast("드로잉 필기본이 데이터베이스에 안착되었습니다.");
-            });
-        }
-
-        function isCanvasEmpty() {
-            const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
-            return !buffer.some(color => color !== 0);
-        }
-
-        function loadCanvasImage(dataUrl) {
-            const loader = document.getElementById("canvasLoader");
-            loader.classList.remove("hidden");
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (dataUrl) {
-                const img = new Image();
-                img.onload = function() {
-                    ctx.save();
-                    ctx.translate(panX, panY);
-                    ctx.scale(scale, scale);
-                    ctx.drawImage(img, 0, 0);
-                    ctx.restore();
-                    loader.classList.add("hidden");
-                };
-                img.src = dataUrl;
-            } else {
-                setTimeout(() => {
-                    loader.classList.add("hidden");
-                }, 200);
-            }
-        }
-
-        function downloadHandwriting() {
-            const exportCanvas = document.createElement("canvas");
-            exportCanvas.width = canvas.width;
-            exportCanvas.height = canvas.height;
-            const exportCtx = exportCanvas.getContext("2d");
-
-            const isDark = document.documentElement.classList.contains("dark");
-            exportCtx.fillStyle = isDark ? "#0f172a" : "#ffffff";
-            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-
-            if (currentTemplate !== 'none') {
-                exportCtx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)";
-                exportCtx.lineWidth = 1;
-                
-                if (currentTemplate === 'grid') {
-                    const step = 24;
-                    for (let x = 0; x < exportCanvas.width; x += step) {
-                        exportCtx.beginPath(); exportCtx.moveTo(x, 0); exportCtx.lineTo(x, exportCanvas.height); exportCtx.stroke();
-                    }
-                    for (let y = 0; y < exportCanvas.height; y += step) {
-                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
-                    }
-                } else if (currentTemplate === 'line') {
-                    const step = 28;
-                    for (let y = step; y < exportCanvas.height; y += step) {
-                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
-                    }
-                } else if (currentTemplate === 'dot') {
-                    const step = 20;
-                    exportCtx.fillStyle = isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
-                    for (let x = step; x < exportCanvas.width; x += step) {
-                        for (let y = step; y < exportCanvas.height; y += step) {
-                            exportCtx.beginPath();
-                            exportCtx.arc(x, y, 1.2, 0, Math.PI * 2);
-                            exportCtx.fill();
-                        }
-                    }
-                }
-            }
-
-            exportCtx.drawImage(canvas, 0, 0);
-
-            const link = document.createElement("a");
-            link.download = `TabPlanner_Drawing_${selectedDateStr}.png`;
-            link.href = exportCanvas.toDataURL("image/png");
-            link.click();
-            showToast("필기지가 성공적으로 추출되었습니다.");
-        }
-
-        // --- 20. 탭 변경 비즈니스 로직 ---
-        function switchTab(tabId) {
-            activeTab = tabId;
-            
-            const tabs = ["todo", "work", "habit", "mood", "meeting", "note", "pencil", "ai", "dashboard"];
-            tabs.forEach(t => {
-                const tabBtn = document.getElementById(`tab-${t}`);
-                const tabContent = document.getElementById(`content-${t}`);
-                
-                if (t === tabId) {
-                    tabBtn.className = "py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
-                    tabContent.classList.remove("hidden");
-                    tabContent.classList.add("block");
-                } else {
-                    tabBtn.className = "py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
-                    tabContent.classList.remove("block");
-                    tabContent.classList.add("hidden");
-                }
-            });
-
-            if (tabId === "pencil") {
-                setTimeout(() => {
-                    handleCanvasResize();
-                    getPlannerData(selectedDateStr).then(data => {
-                        loadCanvasImage(data ? data.canvasImage : null);
-                        if (currentTemplate !== 'none') changeCanvasTemplate(currentTemplate);
-                    });
-                }, 100);
-            } else if (tabId === "dashboard") {
-                renderDashboard();
-            }
-
-            // 모바일 및 세로 모드 상태에서 사용자가 탭을 바꿨을 때 자동으로 작업대 화면을 보여주도록 개선
-            if (window.innerWidth < 1024) {
-                togglePortraitView('workspace');
-            }
-        }
-
-        // --- 21. 외부 데이터 백업 및 데이터 초기화 연동 ---
+        // --- 17. 외부 데이터 백업 및 초기화 연동 ---
         function exportData() {
             if (!db) return;
             const transaction = db.transaction(["plannerStore"], "readonly");

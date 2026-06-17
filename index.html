@@ -133,7 +133,7 @@
                 <div>
                     <div class="flex items-center gap-1.5">
                         <h1 class="text-base font-bold text-slate-900 dark:text-white leading-tight">TabPlanner Pro</h1>
-                        <span class="px-1.5 py-0.5 text-[8px] font-black bg-indigo-600 text-white rounded-full uppercase tracking-wider">S-Pen & AI</span>
+                        <span class="px-1.5 py-0.5 text-[8px] font-black bg-indigo-600 text-white rounded-full uppercase tracking-wider">S-Pen & AI Premium</span>
                     </div>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">태블릿 필기 다이어리</p>
                 </div>
@@ -142,6 +142,10 @@
         
         <!-- 상단 유틸리티 및 다크모드 제어 -->
         <div class="flex items-center gap-2 flex-wrap">
+            <!-- API Key & AI 설정 버튼 -->
+            <button onclick="openSettingsModal()" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition" title="AI 및 API 연동 설정">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
             <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition" title="화면 테마 변경">
                 <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
@@ -331,6 +335,13 @@
                         </h2>
                         <div class="flex gap-2">
                             <input type="text" id="todoInput" placeholder="새로운 할 일을 입력하세요..." class="flex-1 px-4 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-100">
+                            
+                            <!-- 추천 기능 3. 리마인더 시간 설정 인풋 연동 -->
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 shrink-0">
+                                <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                <input type="time" id="todoReminderTime" class="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none">
+                            </div>
+
                             <button onclick="addTodo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1 shrink-0">
                                 <i data-lucide="plus" class="w-4 h-4"></i> 추가
                             </button>
@@ -343,7 +354,7 @@
                             <span id="todoProgress" class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">0개 완료됨</span>
                         </div>
                         <ul id="todoList" class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <!-- 할 일 항목 동적 생성 영역 -->
+                            <!-- 할 일 항목 To-Do 리스트 주입구 -->
                         </ul>
                         <div id="todoEmptyState" class="text-center py-8 text-slate-400 text-sm hidden">
                             <i data-lucide="check-circle-2" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
@@ -354,6 +365,42 @@
 
                 <!-- 1-2. 금일 작업사항 탭 -->
                 <div id="content-work" class="tab-content hidden space-y-4">
+                    <!-- 프리미엄 뽀모도로 집중 타이머 & 백색소음 플레이어 탑재 -->
+                    <div class="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-200 dark:border-indigo-950/50 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-1">
+                            <h3 class="text-sm font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+                                <i data-lucide="timer" class="w-4 h-4 text-indigo-600 dark:text-indigo-400 animate-pulse"></i>
+                                뽀모도로 집중 플로우 & 오프라인 빗소리 사운드 스태프
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Web Audio API를 활용해 스스로 비장막을 치는 오프라인 자연 빗소리 백색소음을 합성 재생합니다. 집중력을 비약적으로 증대하세요.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-4 flex-wrap shrink-0">
+                            <!-- 타이머 시간 설정 -->
+                            <select id="pomodoroDuration" onchange="setPomodoroTime(this.value)" class="px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none">
+                                <option value="25">25분 집중</option>
+                                <option value="50">50분 집중</option>
+                                <option value="5">5분 휴식</option>
+                                <option value="15">15분 휴식</option>
+                            </select>
+                            
+                            <!-- 가상 시간 출력부 -->
+                            <div class="px-4 py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center min-w-[100px]">
+                                <span id="pomodoroTimerDisplay" class="text-lg font-black text-indigo-600 dark:text-indigo-400">25:00</span>
+                            </div>
+
+                            <button onclick="togglePomodoroTimer()" id="pomodoroStartBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작
+                            </button>
+
+                            <!-- 백색소음 토글 시스템 -->
+                            <button onclick="toggleAmbientRain()" id="ambientRainBtn" class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                                <i data-lucide="cloud-rain" class="w-3.5 h-3.5"></i> <span>빗소리 소음 재생</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                             <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -472,9 +519,16 @@
                 <!-- 3. 감정 및 일기 탭 -->
                 <div id="content-mood" class="tab-content hidden space-y-4">
                     <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                        <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                            <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>오늘 나의 감정 상태는 어떤가요?
-                        </h2>
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>오늘 나의 감정 상태는 어떤가요?
+                            </h2>
+                            <!-- 추천 기능 2. 감성 일기 테마송 연동 -->
+                            <button onclick="toggleAmbientMindMusic()" id="ambientMindMusicBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-slate-800 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition" title="작성하신 감정 및 일기 맥락에 맞추어 Web Audio API가 즉석에서 생성한 평화로운 음악을 연주합니다.">
+                                <i data-lucide="music-4" class="w-4 h-4"></i>
+                                <span>감정 테마곡 연주</span>
+                            </button>
+                        </div>
                         
                         <!-- 감정 선택 버튼 목록 -->
                         <div class="grid grid-cols-5 gap-3 max-w-md mx-auto text-center py-2">
@@ -537,7 +591,7 @@
                             </div>
                         </div>
 
-                        <!-- 실시간 오디오 레코더 컴포넌트 추가 -->
+                        <!-- 실시간 오디오 레코더 컴포넌트 -->
                         <div class="p-4 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-950/50 rounded-xl space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
@@ -622,7 +676,7 @@
                 <!-- 6. 펜슬 필기 캔버스 탭 -->
                 <div id="content-pencil" class="tab-content hidden flex flex-col h-[calc(100vh-220px)] min-h-[420px]">
                     
-                    <!-- 필기 상단 바 및 가이드라인 템플릿 변경 기능 추가 -->
+                    <!-- 필기 상단 바 및 가이드라인 템플릿 변경 기능 -->
                     <div class="bg-white dark:bg-slate-900 p-3 rounded-t-xl border border-slate-200 dark:border-slate-800 border-b-0 flex flex-wrap items-center justify-between gap-3 shrink-0">
                         
                         <!-- 펜슬 도구 툴킷 (펜/형광펜/지우개) 및 색상선택 -->
@@ -638,6 +692,20 @@
                                 <button onclick="setDrawingMode('eraser')" id="tool-eraser" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition">
                                     <i data-lucide="eraser" class="w-3.5 h-3.5"></i> 지우개
                                 </button>
+                                <!-- 디지털 드로잉 스티커 모드 -->
+                                <button onclick="setDrawingMode('sticker')" id="tool-sticker" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition" title="터치하는 곳에 선택한 다이어리 꾸미기 스티커를 마크합니다">
+                                    <i data-lucide="smile" class="w-3.5 h-3.5 text-amber-500"></i> 스티커 쾅!
+                                </button>
+                            </div>
+
+                            <!-- Undo / Redo 조작 패널 -->
+                            <div class="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                <button onclick="undoCanvas()" id="canvas-undo-btn" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-900 text-slate-500 dark:text-slate-400 disabled:opacity-40 transition" title="실행 취소 (Undo)">
+                                    <i data-lucide="undo-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="redoCanvas()" id="canvas-redo-btn" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-900 text-slate-500 dark:text-slate-400 disabled:opacity-40 transition" title="다시 실행 (Redo)">
+                                    <i data-lucide="redo-2" class="w-4 h-4"></i>
+                                </button>
                             </div>
 
                             <!-- 컬러 팔레트 -->
@@ -649,9 +717,20 @@
                                 <button onclick="setPenColor('#eab308')" class="color-btn w-6 h-6 rounded-full bg-yellow-500 border-2 border-white dark:border-slate-800" title="형광노랑"></button>
                             </div>
 
+                            <!-- 스티커 팔레트 (스티커 드로잉 모드 활성화 시 표시됨) -->
+                            <div id="stickerPalletContainer" class="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/30 p-1 rounded-xl hidden">
+                                <span class="text-[10px] font-bold text-amber-700 dark:text-amber-400 px-1">스티커:</span>
+                                <button onclick="selectSticker('⭐')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale active-sticker" title="별">⭐</button>
+                                <button onclick="selectSticker('✅')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale" title="완료">✅</button>
+                                <button onclick="selectSticker('📌')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale" title="핀">📌</button>
+                                <button onclick="selectSticker('❤️')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale" title="하트">❤️</button>
+                                <button onclick="selectSticker('💡')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale" title="아이디어">💡</button>
+                                <button onclick="selectSticker('📝')" class="sticker-btn text-base hover:scale-125 transition px-1 filter grayscale" title="노트">📝</button>
+                            </div>
+
                             <!-- 굵기 세팅 -->
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">굵기:</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">굵기/크기:</span>
                                 <input type="range" id="lineWidthRange" min="1" max="40" value="3" oninput="updateLineWidth(this.value)" class="w-20 accent-indigo-600 cursor-pointer">
                                 <span id="lineWidthVal" class="text-xs text-slate-600 dark:text-slate-300 font-bold w-6">3px</span>
                             </div>
@@ -680,6 +759,7 @@
                                 <button onclick="adjustZoom(-0.1)" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
                                 <span id="zoomPercent" class="w-12 text-center">100%</span>
                                 <button onclick="adjustZoom(0.1)" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="autoFitCanvas()" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded" title="화면 크기에 딱 맞춤 (Aspect Ratio 자동 계산)"><i data-lucide="expand" class="w-3.5 h-3.5"></i></button>
                                 <button onclick="resetZoomAndPan()" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded" title="크기 및 배율 초기화"><i data-lucide="maximize" class="w-3.5 h-3.5"></i></button>
                             </div>
 
@@ -693,6 +773,11 @@
                                     <option value="dot">도트 (Dot)</option>
                                 </select>
                             </div>
+
+                            <!-- 추천 기능 1. 손글씨 필기 AI OCR 텍스트 변환 연동 -->
+                            <button onclick="runHandwritingOcr()" id="handwritingOcrBtn" class="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-slate-800 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 transition" title="현재 작성된 필기지를 스마트 스캔하여 타이핑된 텍스트 메모로 AI가 즉시 변환해줍니다.">
+                                <i data-lucide="scan-text" class="w-4 h-4"></i> 손글씨 AI 인식
+                            </button>
 
                             <button onclick="downloadHandwriting()" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition">
                                 <i data-lucide="image" class="w-4 h-4"></i> 이미지 추출
@@ -724,7 +809,7 @@
                         <!-- 로딩 표시 오버레이 -->
                         <div id="canvasLoader" class="absolute inset-0 bg-white/70 dark:bg-slate-900/70 flex items-center justify-center hidden z-20">
                             <div class="flex flex-col items-center gap-2">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
                                 <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">필기 데이터 로드 중...</span>
                             </div>
                         </div>
@@ -804,6 +889,32 @@
                             <button onclick="renderDashboard()" class="px-3.5 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
                                 <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> 데이터 새로고침
                             </button>
+                        </div>
+
+                        <!-- 깃허브 잔디 스타일 월간 감정 트랙 히트맵 배치 -->
+                        <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800/80 p-5 rounded-2xl space-y-3">
+                            <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <i data-lucide="layout-grid" class="w-4 h-4 text-emerald-500"></i> 월간 일간 감정 로드맵 (GitHub 잔디 히트맵)
+                            </h3>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">
+                                이번 달 동안 기록한 매일의 기분이 타임라인 그리드로 가시화됩니다. 색이 짙을수록 더 긍정적인 감정 상태(Excellent)를 가리킵니다.
+                            </p>
+                            
+                            <!-- 감정 잔디밭 그리드 -->
+                            <div id="moodHeatmapGrid" class="flex flex-wrap gap-2 pt-2">
+                                <!-- JS에서 동적으로 일 수에 맞는 블록 타일 생성 예정 -->
+                            </div>
+                            
+                            <!-- 범례 설명 -->
+                            <div class="flex items-center justify-end gap-1.5 text-[9px] text-slate-400">
+                                <span>힘듦</span>
+                                <span class="w-3.5 h-3.5 bg-red-400 rounded"></span>
+                                <span class="w-3.5 h-3.5 bg-orange-400 rounded"></span>
+                                <span class="w-3.5 h-3.5 bg-slate-200 dark:bg-slate-700 rounded"></span>
+                                <span class="w-3.5 h-3.5 bg-blue-400 rounded"></span>
+                                <span class="w-3.5 h-3.5 bg-emerald-500 rounded"></span>
+                                <span>최고</span>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -907,6 +1018,45 @@
         </div>
     </div>
 
+    <!-- AI & API 설정 모달 -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="flex items-center gap-3 text-indigo-500">
+                <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl">
+                    <i data-lucide="sliders-horizontal" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">AI 엔진 및 API 설정</h3>
+            </div>
+            
+            <div class="space-y-3 pt-2">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Gemini API Key</label>
+                    <div class="relative">
+                        <input type="password" id="settingsApiKey" placeholder="AI 분석용 Gemini API 키를 입력하세요..." class="w-full px-3 py-2 pr-10 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="toggleApiKeyVisibility()" class="absolute right-3 top-2 text-slate-400 hover:text-slate-600">
+                            <i data-lucide="eye" id="apiKeyEyeIcon" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">※ 입력된 API 키는 외부에 업로드되지 않고 오직 사용자 기기의 로컬에만 안전하게 저장됩니다.</p>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">분석용 Gemini AI 모델 선택</label>
+                    <select id="settingsAiModel" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="gemini-2.5-flash-preview-09-2025">Gemini 2.5 Flash (권장 - 스마트 브리핑 최적화)</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (가볍고 신속함)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (깊이 있고 우수한 분석)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button onclick="closeSettingsModal()" class="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">닫기</button>
+                <button onclick="saveSettingsData()" class="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition">저장 및 반영</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 커스텀 알림(토스트) 메시지 -->
     <div id="toastMessage" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 ease-out z-50 flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-sm">
         <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
@@ -930,11 +1080,19 @@
         let lastY = 0;
         let penColor = "#0f172a";
         let penWidth = 3;
-        let drawMode = 'pen'; // 'pen' | 'highlighter' | 'eraser'
+        let drawMode = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'sticker'
         let currentTemplate = 'none'; // 'none' | 'grid' | 'line' | 'dot'
         let straightLineAssist = false; // 직선 보정 여부
         let strokeStartX = 0, strokeStartY = 0; // 직선 시작 좌표 백업용
+        let activeSticker = "⭐"; // 현재 선택된 다꾸용 스티커 종류
         
+        // 실시간 곡선 보정용 포인트 수집 버퍼
+        let strokePoints = [];
+
+        // 캔버스 Undo/Redo 용 히스토리 스택
+        let canvasUndoStack = [];
+        let canvasRedoStack = [];
+
         // 캔버스 줌 & 이동 상태 값
         let scale = 1.0;
         let panX = 0;
@@ -942,6 +1100,7 @@
         let isPanning = false;
         let startTouchDistance = 0;
         let lastTouchX = 0, lastTouchY = 0;
+        let currentLoadedImg = null; // 필기 이미지 원본 객체 캐싱 변수
 
         let noteSaveTimeout = null;
         let workLogSaveTimeout = null;
@@ -957,6 +1116,22 @@
         let voiceRecordTimer = null;
         let voiceRecordSeconds = 0;
         let activeVoiceBlobUrl = null;
+
+        // 뽀모도로 타이머 상태 변수
+        let pomodoroTimeRemaining = 1500; // 기본 25분 (초)
+        let pomodoroTimerInterval = null;
+        let isPomodoroRunning = false;
+
+        // Web Audio 백색소음(우중 사운드) 및 마음 테마 음악 합성용 노드 저장소
+        let audioCtx = null;
+        let ambientRainSource = null;
+        let ambientRainGain = null;
+        let isAmbientRainPlaying = false;
+
+        // 추천 기능 2: Web Audio API 기반 오프라인 감성 앰비언트 음악 노드
+        let mindMusicNodes = [];
+        let isMindMusicPlaying = false;
+        let mindMusicInterval = null;
 
         // AI 관련 변수
         let aiTask = "summarize"; // "summarize" | "feedback"
@@ -985,6 +1160,9 @@
 
             initCanvas();
             window.addEventListener('resize', handleCanvasResize);
+
+            // 추천 기능 3. 약속/할 일 리마인더 실시간 감시 타이머 실행 (1분 주기)
+            setInterval(checkActiveReminders, 60000);
         };
 
         // 다크모드 시스템 로직
@@ -1119,6 +1297,42 @@
                 toast.classList.add("translate-y-20", "opacity-0", "pointer-events-none");
                 toast.classList.remove("translate-y-0", "opacity-100");
             }, 3000);
+        }
+
+        // --- AI API & 모델 설정 모달 핸들링 ---
+        function openSettingsModal() {
+            document.getElementById("settingsApiKey").value = localStorage.getItem("tabPlanner_geminiApiKey") || "";
+            document.getElementById("settingsAiModel").value = localStorage.getItem("tabPlanner_geminiModel") || "gemini-2.5-flash-preview-09-2025";
+            document.getElementById("settingsModal").classList.remove("hidden");
+            lucide.createIcons();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById("settingsModal").classList.add("hidden");
+        }
+
+        function saveSettingsData() {
+            const key = document.getElementById("settingsApiKey").value.trim();
+            const model = document.getElementById("settingsAiModel").value;
+
+            localStorage.setItem("tabPlanner_geminiApiKey", key);
+            localStorage.setItem("tabPlanner_geminiModel", model);
+
+            showToast("AI 설정 정보가 성공적으로 기기에 저장되었습니다.");
+            closeSettingsModal();
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById("settingsApiKey");
+            const icon = document.getElementById("apiKeyEyeIcon");
+            if (input.type === "password") {
+                input.type = "text";
+                icon.setAttribute("data-lucide", "eye-off");
+            } else {
+                input.type = "password";
+                icon.setAttribute("data-lucide", "eye");
+            }
+            lucide.createIcons();
         }
 
         function renderCalendar() {
@@ -1396,6 +1610,51 @@
             });
         }
 
+        // 특정 습관의 연속 연속 달성 일수(Streak)를 계산하는 실시간 백엔드 시스템
+        function calculateHabitStreak(habitName) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(0);
+                const transaction = db.transaction(["plannerStore"], "readonly");
+                const store = transaction.objectStore("plannerStore");
+                const request = store.getAll();
+
+                request.onsuccess = function(e) {
+                    const allRecords = e.target.result || [];
+                    // 날짜 내림차순 정렬
+                    allRecords.sort((a, b) => b.date.localeCompare(a.date));
+
+                    let streak = 0;
+                    const todayStr = formatDate(new Date());
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = formatDate(yesterday);
+
+                    // 기록이 전혀 없거나 오늘/어제 체크를 안 한 경우 예외처리
+                    const hasTodayCheck = allRecords.find(r => r.date === todayStr)?.habitChecks?.[habitName];
+                    const hasYesterdayCheck = allRecords.find(r => r.date === yesterdayStr)?.habitChecks?.[habitName];
+
+                    if (!hasTodayCheck && !hasYesterdayCheck) {
+                        return resolve(0);
+                    }
+
+                    let checkDate = hasTodayCheck ? new Date() : yesterday;
+                    
+                    while (true) {
+                        const targetStr = formatDate(checkDate);
+                        const record = allRecords.find(r => r.date === targetStr);
+                        if (record && record.habitChecks && record.habitChecks[habitName]) {
+                            streak++;
+                            checkDate.setDate(checkDate.getDate() - 1);
+                        } else {
+                            break;
+                        }
+                    }
+                    resolve(streak);
+                };
+                request.onerror = () => resolve(0);
+            });
+        }
+
         function loadSelectedDateData() {
             getPlannerData(selectedDateStr).then(data => {
                 updateTagStatus(data ? data.tagColor : null);
@@ -1667,6 +1926,18 @@
             todos.forEach((todo, idx) => {
                 const li = document.createElement("li");
                 li.className = "flex items-center justify-between py-3.5 group";
+                
+                // 리마인더 시간 배지 렌더링
+                let reminderBadge = "";
+                if (todo.reminderTime) {
+                    reminderBadge = `
+                        <span class="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+                            <i data-lucide="bell" class="w-3 h-3"></i>
+                            ${todo.reminderTime} 알림
+                        </span>
+                    `;
+                }
+
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
                         <button onclick="toggleTodo(${idx})" class="w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
@@ -1674,7 +1945,10 @@
                         }">
                             ${todo.done ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
                         </button>
-                        <span class="text-sm font-medium ${todo.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${todo.text}</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-medium ${todo.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${todo.text}</span>
+                            ${reminderBadge}
+                        </div>
                     </div>
                     <button onclick="deleteTodo(${idx})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -1688,14 +1962,24 @@
         function addTodo() {
             const input = document.getElementById("todoInput");
             const text = input.value.trim();
+            const reminderTime = document.getElementById("todoReminderTime").value;
+
             if (!text) return;
 
             getPlannerData(selectedDateStr).then(data => {
                 const todos = data ? (data.todos || []) : [];
-                todos.push({ text: text, done: false });
+                
+                // 리마인더 동반 추가 설정
+                todos.push({ 
+                    text: text, 
+                    done: false, 
+                    reminderTime: reminderTime || null,
+                    reminderTriggered: false 
+                });
                 
                 savePlannerData(selectedDateStr, { todos: todos }).then(() => {
                     input.value = "";
+                    document.getElementById("todoReminderTime").value = "";
                     loadSelectedDateData();
                     showToast("할 일이 추가되었습니다.");
                 });
@@ -1727,7 +2011,254 @@
             });
         }
 
-        // --- 8. 세부 기능 구현: 금일 작업사항 타임라인 ---
+        // --- 추천 기능 3. 스마트 일정 알림 리마인더 실시간 감시 엔진 ---
+        function checkActiveReminders() {
+            const todayStr = formatDate(new Date());
+            
+            // 오늘 날짜 데이터만 우선 조회
+            getPlannerData(todayStr).then(data => {
+                if (!data || !data.todos) return;
+
+                const now = new Date();
+                const currentHourMin = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                let updated = false;
+
+                const updatedTodos = data.todos.map(todo => {
+                    if (!todo.done && todo.reminderTime && todo.reminderTime === currentHourMin && !todo.reminderTriggered) {
+                        triggerSystemReminderAlert(todo.text, todo.reminderTime);
+                        todo.reminderTriggered = true;
+                        updated = true;
+                    }
+                    return todo;
+                });
+
+                if (updated) {
+                    savePlannerData(todayStr, { todos: updatedTodos });
+                }
+            });
+        }
+
+        function triggerSystemReminderAlert(taskText, timeStr) {
+            // 브라우저 멜로디 연주
+            playNotificationTone();
+
+            // 유저 알림 팝업 창 유연한 렌더링
+            const overlay = document.createElement("div");
+            overlay.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in";
+            overlay.innerHTML = `
+                <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="flex items-center gap-3 text-indigo-500">
+                        <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl animate-bounce">
+                            <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-base font-black text-slate-900 dark:text-white">스마트 알림 리마인더</h3>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-bold text-slate-400">지정 시간: ${timeStr}</span>
+                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">"${taskText}" 일정을 진행할 시간입니다!</p>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition">확인했습니다</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            lucide.createIcons();
+        }
+
+        // --- 8. 세부 기능 구현: 금일 작업사항 및 뽀모도로 기능 ---
+        function setPomodoroTime(minutes) {
+            stopPomodoroTimer();
+            pomodoroTimeRemaining = minutes * 60;
+            updatePomodoroDisplay();
+        }
+
+        function updatePomodoroDisplay() {
+            const mins = String(Math.floor(pomodoroTimeRemaining / 60)).padStart(2, '0');
+            const secs = String(pomodoroTimeRemaining % 60).padStart(2, '0');
+            document.getElementById("pomodoroTimerDisplay").innerText = `${mins}:${secs}`;
+        }
+
+        function togglePomodoroTimer() {
+            const btn = document.getElementById("pomodoroStartBtn");
+            if (isPomodoroRunning) {
+                stopPomodoroTimer();
+                btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
+                showToast("집중 타이머가 일시정지되었습니다.");
+            } else {
+                isPomodoroRunning = true;
+                btn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> 타이머 일시정지`;
+                btn.className = "px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5";
+                
+                pomodoroTimerInterval = setInterval(() => {
+                    if (pomodoroTimeRemaining > 0) {
+                        pomodoroTimeRemaining--;
+                        updatePomodoroDisplay();
+                    } else {
+                        stopPomodoroTimer();
+                        showToast("🎉 집중/휴식 시간이 완료되었습니다! 수고하셨습니다.");
+                        // 브라우저 기본 알림 벨소리 합성 연주
+                        playNotificationTone();
+                    }
+                }, 1000);
+            }
+            lucide.createIcons();
+        }
+
+        function stopPomodoroTimer() {
+            isPomodoroRunning = false;
+            clearInterval(pomodoroTimerInterval);
+            const btn = document.getElementById("pomodoroStartBtn");
+            btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
+            btn.className = "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5";
+            lucide.createIcons();
+        }
+
+        // 오프라인 Web Audio API 기반 오디오 합성: 빗소리 백색소음 합성기
+        function toggleAmbientRain() {
+            const btn = document.getElementById("ambientRainBtn");
+            
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (isAmbientRainPlaying) {
+                // 멈춤
+                if (ambientRainSource) {
+                    try { ambientRainSource.stop(); } catch(e){}
+                    ambientRainSource = null;
+                }
+                isAmbientRainPlaying = false;
+                btn.querySelector("span").innerText = "빗소리 소음 재생";
+                btn.className = "px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition flex items-center gap-1.5";
+                showToast("백색소음 재생이 종료되었습니다.");
+            } else {
+                // 우중 사운드 Brown Noise 합성 시작
+                isAmbientRainPlaying = true;
+                btn.querySelector("span").innerText = "사운드 끄기";
+                btn.className = "px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5";
+
+                const bufferSize = 10 * audioCtx.sampleRate;
+                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                
+                let lastOut = 0.0;
+                // Brown Noise 수식 필터링 (빗소리와 흡사함)
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 3.5; // 소리 레벨 보정
+                }
+
+                ambientRainSource = audioCtx.createBufferSource();
+                ambientRainSource.buffer = noiseBuffer;
+                ambientRainSource.loop = true;
+
+                // 볼륨 노드 추가
+                ambientRainGain = audioCtx.createGain();
+                ambientRainGain.gain.setValueAtTime(0.08, audioCtx.currentTime); // 너무 시끄럽지 않게 8% 볼륨 고정
+
+                ambientRainSource.connect(ambientRainGain);
+                ambientRainGain.connect(audioCtx.destination);
+                
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                ambientRainSource.start();
+                showToast("자연 합성 빗소리가 아늑하게 울립니다. 몰입해 보세요.");
+            }
+        }
+
+        // 뽀모도로 완료 알림 벨소리 합성 연주 시스템 (Binaural Tone)
+        function playNotificationTone() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 (도)
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5 (미)
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3); // G5 (솔)
+            
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        // 추천 기능 2. 오늘의 감성 일기 기반 Web Audio 실시간 음악 생성기
+        function toggleAmbientMindMusic() {
+            const btn = document.getElementById("ambientMindMusicBtn");
+            
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (isMindMusicPlaying) {
+                stopAmbientMindMusic();
+                btn.querySelector("span").innerText = "감정 테마곡 연주";
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-slate-800 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition";
+                showToast("감정 테마곡 재생을 멈췄습니다.");
+            } else {
+                isMindMusicPlaying = true;
+                btn.querySelector("span").innerText = "재생 중지";
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition";
+
+                // 현재 선택된 감정 상태에 맞는 음계 코드 진행 구성
+                const currentMoodVal = document.querySelector(".mood-selector-btn.ring-2")?.id?.replace("mood-", "") || "neutral";
+                let scaleDegrees = [261.63, 329.63, 392.00, 523.25]; // Major C코드 기본 (평화로움)
+
+                if (currentMoodVal === 'bad' || currentMoodVal === 'terrible') {
+                    scaleDegrees = [220.00, 261.63, 329.63, 440.00]; // Minor Am코드 (우울/감상적)
+                } else if (currentMoodVal === 'excellent' || currentMoodVal === 'good') {
+                    scaleDegrees = [293.66, 369.99, 440.00, 587.33]; // Major D코드 (밝고 활기참)
+                }
+
+                // 주기적인 앰비언트 신디사이저 아르페지오 생성
+                let noteIndex = 0;
+                mindMusicInterval = setInterval(() => {
+                    playSynthArpeggio(scaleDegrees[noteIndex % scaleDegrees.length]);
+                    noteIndex++;
+                }, 800);
+
+                showToast("오늘 마음 상태에 최적화된 배경음이 Web Audio로 즉흥 연주됩니다.");
+            }
+        }
+
+        function playSynthArpeggio(frequency) {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = "triangle"; // 부드러운 아날로그 신스 파형
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+            // 잔향 효과를 주어 앰비언트 느낌을 극대화
+            gainNode.gain.setValueAtTime(0.0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.3);
+
+            mindMusicNodes.push({ osc, gainNode });
+        }
+
+        function stopAmbientMindMusic() {
+            isMindMusicPlaying = false;
+            clearInterval(mindMusicInterval);
+            mindMusicNodes.forEach(node => {
+                try { node.osc.stop(); } catch(e){}
+            });
+            mindMusicNodes = [];
+        }
+
         function saveWorkLogData(showToastAlert = false) {
             const status = document.getElementById("workStatus").value;
             const summary = document.getElementById("workSummary").value.trim();
@@ -1755,7 +2286,7 @@
             }, 1000);
         }
 
-        // --- 9. 세부 기능 구현: 습관 루틴 템플릿 ---
+        // --- 9. 세부 기능 구현: 습관 루틴 템플릿 및 Streak 연동 ---
         function renderHabitList(checks) {
             const listContainer = document.getElementById("habitList");
             const emptyState = document.getElementById("habitEmptyState");
@@ -1776,6 +2307,10 @@
 
                 const li = document.createElement("li");
                 li.className = "flex items-center justify-between py-3.5 group";
+                
+                // 루틴 streak 비동기 계산을 적용할 컨테이너 구성
+                const streakId = "streak-" + btoa(unescape(encodeURIComponent(habit))).replace(/=/g, "");
+                
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
                         <button onclick="toggleHabitCheck('${habit}')" class="w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
@@ -1783,13 +2318,30 @@
                         }">
                             ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
                         </button>
-                        <span class="text-sm font-medium ${isChecked ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${habit}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium ${isChecked ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${habit}</span>
+                            <!-- 실시간 연속 달성 일수(Streak) 배지 -->
+                            <span id="${streakId}" class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 font-bold hidden">
+                                <i data-lucide="flame" class="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse"></i>
+                                <span>0일 연속</span>
+                            </span>
+                        </div>
                     </div>
                     <button onclick="deleteGlobalHabit('${habit}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
                 listContainer.appendChild(li);
+
+                // 실시간 Streak 연산 및 렌더링 호출
+                calculateHabitStreak(habitName => {
+                    const el = document.getElementById(streakId);
+                    if (el && streak > 0) {
+                        el.classList.remove("hidden");
+                        el.querySelector("span").innerText = `${streak}일 연속`;
+                        lucide.createIcons();
+                    }
+                });
             });
 
             const percentage = globalHabits.length > 0 ? Math.round((checkedCount / globalHabits.length) * 100) : 0;
@@ -1808,7 +2360,7 @@
             if (!text) return;
 
             if (globalHabits.includes(text)) {
-                showToast("이미 동등한 습관 목표가 목록에 수립되어 있습니다.");
+                showToast("이미 동일한 습관 목표가 목록에 수립되어 있습니다.");
                 return;
             }
 
@@ -1882,7 +2434,7 @@
             window.print();
         }
 
-        // --- 12. 세부 기능 구현: 펜슬 핸드라이팅 필기 (Pointer Events 표준 이식) ---
+        // --- 12. 세부 기능 구현: S펜/스타일러스 드로잉 필기 캔버스 ---
         function initCanvas() {
             canvas = document.getElementById("noteCanvas");
             ctx = canvas.getContext("2d");
@@ -1894,6 +2446,7 @@
             canvas.addEventListener("pointercancel", handlePointerUp, { passive: false });
             
             handleCanvasResize();
+            updateHistoryButtons();
         }
 
         function changeCanvasTemplate(template) {
@@ -1906,6 +2459,61 @@
             showToast(`${template.toUpperCase()} 패턴 가이드가 적용되었습니다.`);
         }
 
+        // 캔버스 종횡비 자동 측정 기반의 화면 맞춤 보정 시스템
+        function autoFitCanvas() {
+            if (!currentLoadedImg) {
+                resetZoomAndPan();
+                return;
+            }
+            
+            const imgW = currentLoadedImg.naturalWidth || canvas.width;
+            const imgH = currentLoadedImg.naturalHeight || canvas.height;
+            
+            // 컨테이너 크기에 딱 맞추기 위한 최적의 배율 계산
+            const scaleX = canvas.width / imgW;
+            const scaleY = canvas.height / imgH;
+            scale = Math.min(scaleX, scaleY);
+            
+            // 지나치게 확대되어 이미지가 깨지는 것을 방지하기 위해 최소/최대 배율 고정
+            scale = Math.max(0.3, Math.min(scale, 1.5)); 
+            
+            // 중앙 좌표 계산
+            panX = (canvas.width - imgW * scale) / 2;
+            panY = (canvas.height - imgH * scale) / 2;
+            
+            document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+            redrawCanvasCurrentState();
+            showToast("화면 크기에 맞추어 필기를 정렬했습니다.");
+        }
+
+        // 토스트 팝업 없는 내부 조작용 핏 계산기 (일지 전환이나 회전 시 사용)
+        function autoFitCanvasWithoutToast() {
+            if (!currentLoadedImg) {
+                scale = 1.0;
+                panX = 0;
+                panY = 0;
+                document.getElementById("zoomPercent").innerText = "100%";
+                return;
+            }
+            const imgW = currentLoadedImg.naturalWidth || canvas.width;
+            const imgH = currentLoadedImg.naturalHeight || canvas.height;
+            const scaleX = canvas.width / imgW;
+            const scaleY = canvas.height / imgH;
+            scale = Math.min(scaleX, scaleY);
+            scale = Math.max(0.3, Math.min(scale, 1.5)); 
+            panX = (canvas.width - imgW * scale) / 2;
+            panY = (canvas.height - imgH * scale) / 2;
+            document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+            
+            // 다시 그리기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(panX, panY);
+            ctx.scale(scale, scale);
+            ctx.drawImage(currentLoadedImg, 0, 0);
+            ctx.restore();
+        }
+
         function handleCanvasResize() {
             if (!canvas) return;
             const container = canvas.parentElement;
@@ -1914,8 +2522,6 @@
                 return;
             }
             
-            const tempImage = canvas.toDataURL();
-            
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
 
@@ -1923,15 +2529,12 @@
             ctx.lineJoin = "round";
             updatePenStyle();
 
-            const img = new Image();
-            img.onload = function() {
-                ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(scale, scale);
-                ctx.drawImage(img, 0, 0);
-                ctx.restore();
-            };
-            img.src = tempImage;
+            // S펜 필기가 로드되어 있다면, 윈도우 크기가 조정될 때 자동으로 화면 종횡비에 맞게 배치시킵니다.
+            if (currentLoadedImg) {
+                autoFitCanvasWithoutToast();
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
 
         function adjustZoom(amount) {
@@ -1946,7 +2549,7 @@
             panY = 0;
             document.getElementById("zoomPercent").innerText = "100%";
             redrawCanvasCurrentState();
-            showToast("캔버스 비율과 위치를 최적화했습니다.");
+            showToast("캔버스 비율과 위치를 초기화했습니다.");
         }
 
         function redrawCanvasCurrentState() {
@@ -1955,6 +2558,7 @@
                 if (data && data.canvasImage) {
                     const img = new Image();
                     img.onload = function() {
+                        currentLoadedImg = img;
                         ctx.save();
                         ctx.translate(panX, panY);
                         ctx.scale(scale, scale);
@@ -2028,7 +2632,7 @@
         function setDrawingMode(mode) {
             drawMode = mode;
             
-            const modes = ['pen', 'highlighter', 'eraser'];
+            const modes = ['pen', 'highlighter', 'eraser', 'sticker'];
             modes.forEach(m => {
                 const btn = document.getElementById(`tool-${m}`);
                 if (m === mode) {
@@ -2039,13 +2643,35 @@
             });
 
             const palette = document.getElementById("paletteContainer");
+            const stickerPallet = document.getElementById("stickerPalletContainer");
+
             if (mode === 'eraser') {
                 palette.classList.add("opacity-30", "pointer-events-none");
+                stickerPallet.classList.add("hidden");
+            } else if (mode === 'sticker') {
+                palette.classList.add("opacity-30", "pointer-events-none");
+                stickerPallet.classList.remove("hidden");
+                showToast("스탬프 스티커가 켜졌습니다. 하단 아이콘 중 원하는 스탬프를 골라 화면에 찍어보세요.");
             } else {
                 palette.classList.remove("opacity-30", "pointer-events-none");
+                stickerPallet.classList.add("hidden");
             }
 
             updatePenStyle();
+        }
+
+        // 스탬프 스티커 선택 및 UI 셋업
+        function selectSticker(emoji) {
+            activeSticker = emoji;
+            document.querySelectorAll(".sticker-btn").forEach(btn => {
+                if (btn.innerText === emoji) {
+                    btn.classList.remove("grayscale");
+                    btn.classList.add("scale-125", "font-black");
+                } else {
+                    btn.classList.add("grayscale");
+                    btn.classList.remove("scale-125", "font-black");
+                }
+            });
         }
 
         function setPenColor(color) {
@@ -2060,6 +2686,7 @@
             updatePenStyle();
         }
 
+        // 팔레트 링 활성화 업데이트
         function updateActivePaletteRing() {
             document.querySelectorAll(".color-btn").forEach(btn => {
                 btn.classList.remove("ring-2", "ring-indigo-500", "scale-110");
@@ -2088,17 +2715,40 @@
             };
         }
 
-        // --- 12-2. 캔버스 로직: W3C Pointer Events 통합 핸들러 (S펜 하드웨어 Rejection 자동 내장) ---
+        // --- 12-2. 캔버스 로직: Pointer Events 통합 핸들러 (스무딩 및 스탬프 각인 구현) ---
         function handlePointerDown(e) {
             e.preventDefault();
             canvas.setPointerCapture(e.pointerId);
 
             const coords = getCanvasCoordinates(e);
 
-            // 1. 스타일러스 펜(S펜) 입력이 들어온 경우: 손가락 제스처 간섭을 원천 차단하고 순수 드로잉만 모드 활성화
+            // 1. 스타일러스 펜(S펜) 또는 마우스 드로잉 모드 활성화
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                saveHistoryState();
+
+                // 스티커 도장 찍기 모드 적용
+                if (drawMode === 'sticker') {
+                    ctx.save();
+                    ctx.translate(panX, panY);
+                    ctx.scale(scale, scale);
+                    ctx.globalCompositeOperation = 'source-over';
+                    
+                    // 펜 굵기에 비례하여 이모지 스탬프 스케일 설정
+                    const emojiSize = penWidth * 8 + 16;
+                    ctx.font = `bold ${emojiSize}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(activeSticker, coords.x, coords.y);
+                    ctx.restore();
+                    
+                    saveCanvasSilent();
+                    return;
+                }
+
                 isDrawing = true;
                 isPanning = false;
+                
+                strokePoints = [coords];
                 lastX = coords.x;
                 lastY = coords.y;
 
@@ -2109,10 +2759,8 @@
             } 
             // 2. 손가락(touch) 입력이 들어온 경우
             else if (e.pointerType === 'touch') {
-                // S펜을 같이 대고 그리는 중이라면 햅틱 오터치로 취급하여 무시
-                if (isDrawing) return;
+                if (isDrawing) return; // S펜 드로잉 작동 중 오터치 Rejection
 
-                // 멀티터치 제스처 시작 (이동 및 줌)
                 isPanning = true;
                 lastTouchX = e.clientX;
                 lastTouchY = e.clientY;
@@ -2125,9 +2773,31 @@
 
             const coords = getCanvasCoordinates(e);
 
-            // S펜 드로잉 작동 구역
             if (isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
-                updatePenStyle();
+                // --- S펜 압력 감지기반 캘리그라피 획 굵기 필터링 시스템 ---
+                let dynamicWidth = penWidth;
+                if (e.pointerType === 'pen' && e.pressure > 0) {
+                    // 감압에 따라 0.35배에서 최대 1.7배까지 유기적 가중치 조절
+                    dynamicWidth = penWidth * (0.35 + e.pressure * 1.35);
+                }
+
+                if (drawMode === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = "rgba(0,0,0,1)";
+                    ctx.lineWidth = dynamicWidth * scale;
+                } else if (drawMode === 'highlighter') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    const hex = penColor.replace('#', '');
+                    const r = parseInt(hex.substring(0, 2), 16);
+                    const g = parseInt(hex.substring(2, 4), 16);
+                    const b = parseInt(hex.substring(4, 6), 16);
+                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                    ctx.lineWidth = dynamicWidth * 3.5 * scale;
+                } else {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = penColor;
+                    ctx.lineWidth = dynamicWidth * scale;
+                }
 
                 ctx.save();
                 ctx.translate(panX, panY);
@@ -2140,15 +2810,30 @@
                     ctx.lineTo(coords.x, coords.y);
                     ctx.stroke();
                 } else {
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(coords.x, coords.y);
-                    ctx.stroke();
-                    
-                    lastX = coords.x;
-                    lastY = coords.y;
-                }
+                    strokePoints.push(coords);
 
+                    // --- Quadratic Bezier 실시간 선 스무딩 알고리즘 적용 ---
+                    if (strokePoints.length > 2) {
+                        const xc = (strokePoints[strokePoints.length - 2].x + strokePoints[strokePoints.length - 1].x) / 2;
+                        const yc = (strokePoints[strokePoints.length - 2].y + strokePoints[strokePoints.length - 1].y) / 2;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                        ctx.quadraticCurveTo(strokePoints[strokePoints.length - 2].x, strokePoints[strokePoints.length - 2].y, xc, yc);
+                        ctx.stroke();
+
+                        lastX = xc;
+                        lastY = yc;
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                        ctx.lineTo(coords.x, coords.y);
+                        ctx.stroke();
+
+                        lastX = coords.x;
+                        lastY = coords.y;
+                    }
+                }
                 ctx.restore();
             } 
             // 손가락 화면 이동(Panning) 구역
@@ -2177,9 +2862,7 @@
                     ctx.save();
                     ctx.translate(panX, panY);
                     ctx.scale(scale, scale);
-                    
                     redrawCanvasCurrentState();
-                    
                     ctx.beginPath();
                     ctx.moveTo(strokeStartX, strokeStartY);
                     ctx.lineTo(coords.x, coords.y);
@@ -2187,6 +2870,9 @@
                     ctx.restore();
                 }
                 isDrawing = false;
+                strokePoints = [];
+                // 매 획 필기 마친후 로컬 DB에 임시저장
+                saveCanvasSilent();
             }
 
             if (e.pointerType === 'touch') {
@@ -2194,56 +2880,78 @@
             }
         }
 
-        // 모바일 사파리 및 일부 구버전 안드로이드 대응을 위한 핀치 줌 제스처 리스너 보조 추가
-        function handleTouchStart(e) {
-            if (e.touches.length === 2) {
-                isDrawing = false;
-                isPanning = true;
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
-                startTouchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-                lastTouchX = (t1.clientX + t2.clientX) / 2;
-                lastTouchY = (t1.clientY + t2.clientY) / 2;
+        // --- 12-3. Canvas Undo / Redo 역사 보존 모듈 ---
+        function saveHistoryState() {
+            // 깊이 최대 25 수준으로 메모리 누수 방지하며 히스토리 스냅샷 생성
+            if (canvasUndoStack.length >= 25) {
+                canvasUndoStack.shift();
             }
+            canvasUndoStack.push(canvas.toDataURL("image/png"));
+            canvasRedoStack = []; // 새 그리기를 시작하면 다시 실행 스택 초기화
+            updateHistoryButtons();
         }
 
-        function handleTouchMove(e) {
-            if (isPanning && e.touches.length === 2) {
-                e.preventDefault();
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
+        function undoCanvas() {
+            if (canvasUndoStack.length === 0) return;
+            
+            // 현재상태를 Redo 스택에 푸시
+            canvasRedoStack.push(canvas.toDataURL("image/png"));
+            
+            const prevState = canvasUndoStack.pop();
+            restoreCanvasState(prevState);
+            updateHistoryButtons();
+        }
 
-                const currentDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-                const zoomFactor = currentDistance / startTouchDistance;
+        function redoCanvas() {
+            if (canvasRedoStack.length === 0) return;
+
+            // 현재 상태를 Undo 스택에 푸시
+            canvasUndoStack.push(canvas.toDataURL("image/png"));
+
+            const nextState = canvasRedoStack.pop();
+            restoreCanvasState(nextState);
+            updateHistoryButtons();
+        }
+
+        function restoreCanvasState(dataUrl) {
+            const loader = document.getElementById("canvasLoader");
+            loader.classList.remove("hidden");
+
+            const img = new Image();
+            img.onload = function() {
+                currentLoadedImg = img;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0);
+                ctx.restore();
                 
-                const previousScale = scale;
-                scale = Math.max(0.5, Math.min(3.0, previousScale * zoomFactor));
-                document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
-
-                const currentTouchX = (t1.clientX + t2.clientX) / 2;
-                const currentTouchY = (t1.clientY + t2.clientY) / 2;
-
-                panX += (currentTouchX - lastTouchX);
-                panY += (currentTouchY - lastTouchY);
-
-                startTouchDistance = currentDistance;
-                lastTouchX = currentTouchX;
-                lastTouchY = currentTouchY;
-
-                redrawCanvasCurrentState();
-            }
+                loader.classList.add("hidden");
+                saveCanvasSilent();
+            };
+            img.src = dataUrl;
         }
 
-        function handleTouchEnd(e) {
-            if (e.touches.length < 2) {
-                isPanning = false;
+        function updateHistoryButtons() {
+            const undoBtn = document.getElementById("canvas-undo-btn");
+            const redoBtn = document.getElementById("canvas-redo-btn");
+
+            if (undoBtn && redoBtn) {
+                undoBtn.disabled = canvasUndoStack.length === 0;
+                redoBtn.disabled = canvasRedoStack.length === 0;
             }
         }
 
         function promptClearCanvas() {
             showConfirmModal("정말로 필기를 전체 삭제하시겠습니까?", () => {
+                // 이전 상태 백업하고 비우기
+                saveHistoryState();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                currentLoadedImg = null;
+                updateHistoryButtons();
                 showToast("캔버스가 깨끗이 비워졌습니다.");
+                saveCanvasSilent();
             });
         }
 
@@ -2257,6 +2965,14 @@
             });
         }
 
+        // 알림창 팝업이 없는 백그라운드 자동 필기세이브 유틸
+        function saveCanvasSilent() {
+            const dataUrl = canvas.toDataURL("image/png");
+            const isCanvasBlank = isCanvasEmpty();
+            const imageToSave = isCanvasBlank ? null : dataUrl;
+            savePlannerData(selectedDateStr, { canvasImage: imageToSave });
+        }
+
         function isCanvasEmpty() {
             const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
             return !buffer.some(color => color !== 0);
@@ -2267,15 +2983,18 @@
             loader.classList.remove("hidden");
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            currentLoadedImg = null;
             
+            // 일지 날짜 전환 시 캔버스 히스토리 스택 리셋
+            canvasUndoStack = [];
+            canvasRedoStack = [];
+            updateHistoryButtons();
+
             if (dataUrl) {
                 const img = new Image();
                 img.onload = function() {
-                    ctx.save();
-                    ctx.translate(panX, panY);
-                    ctx.scale(scale, scale);
-                    ctx.drawImage(img, 0, 0);
-                    ctx.restore();
+                    currentLoadedImg = img;
+                    autoFitCanvasWithoutToast();
                     loader.classList.add("hidden");
                 };
                 img.src = dataUrl;
@@ -2333,6 +3052,79 @@
             link.href = exportCanvas.toDataURL("image/png");
             link.click();
             showToast("필기지가 성공적으로 추출되었습니다.");
+        }
+
+        // --- 추천 기능 1. S펜 캔버스 손글씨 AI OCR 변환 엔진 통합 ---
+        async function runHandwritingOcr() {
+            const apiKey = localStorage.getItem("tabPlanner_geminiApiKey") || "";
+            const activeModel = "gemini-2.5-flash-preview-09-2025"; // 이미지 분석 지원 모델 고정
+
+            if (!apiKey) {
+                showToast("오류: 손글씨 인식을 위해 ⚙️ 설정에서 Gemini API Key를 등록해 주세요!");
+                openSettingsModal();
+                return;
+            }
+
+            if (isCanvasEmpty()) {
+                showToast("캔버스에 손글씨 필기 기록이 존재하지 않습니다.");
+                return;
+            }
+
+            const loader = document.getElementById("canvasLoader");
+            loader.classList.remove("hidden");
+            
+            // 캔버스 드로잉 데이터 Base64 추출 (PNG 포맷)
+            const dataUrl = canvas.toDataURL("image/png");
+            const base64Data = dataUrl.split(",")[1];
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
+
+            const promptText = "이 이미지는 태블릿에 사용자가 S펜으로 직접 필기한 한글/영어 손글씨 노트입니다. 그림이나 불필요한 노이즈는 제외하고, 인식 가능한 글자들을 완벽히 타이핑된 일반 텍스트 형태로만 해독해서 답변해 주세요. 설명 없이 텍스트 알맹이만 보내주세요.";
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType: "image/png", data: base64Data } }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("API 호출 장애");
+
+                const result = await response.json();
+                const detectedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (detectedText && detectedText.trim()) {
+                    // 해독된 필기 텍스트를 메모 탭 본문에 자동 Append 연동
+                    getPlannerData(selectedDateStr).then(data => {
+                        const originalNote = data ? (data.note || "") : "";
+                        const separator = originalNote ? "\n\n[S펜 필기 AI 변환본]:\n" : "[S펜 필기 AI 변환본]:\n";
+                        const finalNote = originalNote + separator + detectedText.trim();
+
+                        savePlannerData(selectedDateStr, { note: finalNote }).then(() => {
+                            showToast("🎉 성공: 손글씨 텍스트 변환본이 '텍스트 메모' 탭에 병합되었습니다!");
+                            document.getElementById("noteContent").value = finalNote;
+                            // 텍스트 메모 탭으로 스마트 스위칭 이동
+                            switchTab("note");
+                        });
+                    });
+                } else {
+                    showToast("필기 해독 실패: 텍스트를 감지하지 못했습니다.");
+                }
+            } catch(e) {
+                console.error("손글씨 OCR 변환 에러:", e);
+                showToast("Gemini AI 인식 중 오류가 발생했습니다. 네트워크나 API 키를 재확인하세요.");
+            } finally {
+                loader.classList.add("hidden");
+            }
         }
 
         // --- 13. 스마트 통합 검색 스캐너 ---
@@ -2454,6 +3246,9 @@
                 let moodCounts = { excellent: 0, good: 0, neutral: 0, bad: 0, terrible: 0 };
                 let moodTotal = 0;
 
+                // 잔디 히트맵 데이터 저장을 위한 일일 기분 캐시 맵
+                const heatmapDayData = {};
+
                 let habitTotalExpected = 0;
                 let habitDoneCount = 0;
                 let habitRates = {}; 
@@ -2472,6 +3267,10 @@
                         if (val.mood && moodCounts.hasOwnProperty(val.mood)) {
                             moodCounts[val.mood]++;
                             moodTotal++;
+                            
+                            // 해당 일자의 기분 기록 캐싱
+                            const dayNum = parseInt(val.date.split('-')[2]);
+                            heatmapDayData[dayNum] = val.mood;
                         }
 
                         if (globalHabits.length > 0) {
@@ -2487,6 +3286,9 @@
 
                         cursor.continue();
                     } else {
+                        // 감정 잔디밭 히트맵 렌더링 호출
+                        drawMoodHeatmap(year, month, heatmapDayData);
+
                         document.getElementById("dashTodoTotal").innerText = `${totalTodos}개`;
                         document.getElementById("dashTodoDone").innerText = `${doneTodos}개`;
                         const todoRate = totalTodos > 0 ? Math.round((doneTodos / totalTodos) * 100) : 0;
@@ -2556,10 +3358,65 @@
             }
         }
 
+        // 대시보드 깃허브 스타일 감정 잔디밭 히트맵 그리기
+        function drawMoodHeatmap(year, month, heatmapDayData) {
+            const heatmapGrid = document.getElementById("moodHeatmapGrid");
+            heatmapGrid.innerHTML = "";
+
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= totalDays; day++) {
+                const tile = document.createElement("div");
+                const mood = heatmapDayData[day] || null;
+                const formattedDay = String(day).padStart(2, '0');
+                const tempDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${formattedDay}`;
+
+                tile.className = "w-7 h-7 rounded-md cursor-pointer hover:scale-110 transition flex items-center justify-center text-[10px] font-black shadow-sm ";
+                
+                // 감정에 따른 잔디 색 분기
+                if (!mood) {
+                    tile.className += "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 border border-slate-200/50 dark:border-slate-800/80";
+                    tile.title = `${day}일: 기록없음`;
+                } else {
+                    switch(mood) {
+                        case 'excellent':
+                            tile.className += "bg-emerald-500 text-white";
+                            tile.title = `${day}일: 최고 😄`;
+                            break;
+                        case 'good':
+                            tile.className += "bg-blue-400 text-white";
+                            tile.title = `${day}일: 좋음 🙂`;
+                            break;
+                        case 'neutral':
+                            tile.className += "bg-amber-400 text-white";
+                            tile.title = `${day}일: 보통 😐`;
+                            break;
+                        case 'bad':
+                            tile.className += "bg-orange-400 text-white";
+                            tile.title = `${day}일: 우울 🙁`;
+                            break;
+                        case 'terrible':
+                            tile.className += "bg-red-400 text-white";
+                            tile.title = `${day}일: 지침 😢`;
+                            break;
+                    }
+                }
+                
+                tile.innerText = day;
+                tile.onclick = () => {
+                    selectDate(tempDateStr);
+                };
+                heatmapGrid.appendChild(tile);
+            }
+        }
+
         // --- 15. 작업대 탭 이동 매니지먼트 ---
         function switchTab(tabId) {
             activeTab = tabId;
             
+            // 전환할 때 기분 음악 연주 상태면 멈추어 오버랩 방지
+            stopAmbientMindMusic();
+
             const tabs = ["todo", "work", "habit", "mood", "meeting", "note", "pencil", "ai", "dashboard"];
             tabs.forEach(t => {
                 const tabBtn = document.getElementById(`tab-${t}`);
@@ -2593,6 +3450,12 @@
             savePlannerData(selectedDateStr, { mood: moodType }).then(() => {
                 selectMoodButton(moodType);
                 showToast("오늘 하루 나의 기분이 성공적으로 기록되었습니다.");
+                
+                // 기분이 바뀌었을 때 음악 재생 중이었다면 재생 코드 실시간 갱신
+                if (isMindMusicPlaying) {
+                    toggleAmbientMindMusic(); // 껐다가
+                    toggleAmbientMindMusic(); // 재생성된 코드로 켬
+                }
             });
         }
 
@@ -2725,6 +3588,15 @@
         }
 
         async function runGeminiAi() {
+            const apiKey = localStorage.getItem("tabPlanner_geminiApiKey") || "";
+            const activeModel = localStorage.getItem("tabPlanner_geminiModel") || "gemini-2.5-flash-preview-09-2025";
+
+            if (!apiKey) {
+                showToast("오류: AI 분석을 작동하려면 먼저 우측 상단 ⚙️ 설정에서 Gemini API Key를 등록해 주세요!");
+                openSettingsModal();
+                return;
+            }
+
             const source = document.getElementById("aiSourceSelect").value;
             const container = document.getElementById("aiResponseContainer");
             const loader = document.getElementById("aiLoader");
@@ -2813,8 +3685,7 @@
                 userPrompt = `오늘 하루 나의 마음 상태와 일기를 건냅니다. 정독하고 편안한 피드백을 적어 주세요.\n\n${sourceText}`;
             }
 
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
 
             const payload = {
                 contents: [{ parts: [{ text: userPrompt }] }],
@@ -2847,7 +3718,7 @@
             loader.classList.add("hidden");
 
             if (!success) {
-                container.innerHTML = `<p class="text-rose-500 font-bold text-center py-8">AI 비서 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>`;
+                container.innerHTML = `<p class="text-rose-500 font-bold text-center py-8">AI 비서 호출에 실패했습니다. 키가 정확한지 확인하시거나 우측 상단 ⚙️ 설정을 다시 체크해 주세요.</p>`;
                 return;
             }
 
@@ -2855,7 +3726,8 @@
             const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (aiText) {
-                container.innerHTML = aiText;
+                // 마크다운 형식의 결과물을 심플하게 프론트에 가독성 있게 변환하여 삽입
+                container.innerHTML = formatMarkdownSimple(aiText);
                 document.getElementById("aiTimeLabel").innerText = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + " 분석 완료";
 
                 if (aiTask === "summarize") {
@@ -2867,6 +3739,16 @@
             } else {
                 container.innerHTML = `<p class="text-slate-400 text-center py-8">분석 결과를 받아오지 못했습니다.</p>`;
             }
+        }
+
+        // 간단 마크다운 스타일링 처리 유틸리티
+        function formatMarkdownSimple(text) {
+            return text
+                .replace(/### (.*)/g, '<h4 class="text-sm font-bold text-slate-800 dark:text-white mt-4 mb-2">$1</h4>')
+                .replace(/\*\*(.*?)\*\"/g, '<strong>$1</strong>')
+                .replace(/-\s*\[\s*\]\s*(.*)/g, '<div class="flex items-center gap-1.5 my-1.5"><span class="w-3.5 h-3.5 rounded border border-indigo-400 inline-block shrink-0"></span><span class="text-slate-700 dark:text-slate-300">$1</span></div>')
+                .replace(/-\s(.*)/g, '<li class="list-disc list-inside ml-2">$1</li>')
+                .replace(/\n/g, '<br>');
         }
 
         function parseExtractedTodos(markdownText) {
@@ -2926,6 +3808,7 @@
             };
         }
 
+        // 가져오기 연동
         function triggerImport() {
             document.getElementById("importFile").click();
         }

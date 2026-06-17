@@ -1,0 +1,3186 @@
+<!DOCTYPE html>
+<html lang="ko" class="transition-colors duration-200">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TabPlanner Pro - 프리미엄 태블릿 스마트 다이어리</title>
+    
+    <!-- 모바일/태블릿 홈 화면 바로가기(PWA) 지원을 위한 메타 태그 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TabPlanner">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4f46e5">
+    
+    <!-- 홈 화면 추가 시 표시되는 고품질 프리미엄 그라데이션 앱 아이콘 -->
+    <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=180&h=180&q=80">
+    <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=32&h=32&q=80">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 시스템 스크롤바 방지 및 터치 최적화 */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        .canvas-container {
+            touch-action: none;
+        }
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* 모눈 격자 템플릿 */
+        .bg-pattern-grid {
+            background-image: linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .dark .bg-pattern-grid {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+        }
+        
+        /* 줄노트 템플릿 */
+        .bg-pattern-line {
+            background-image: linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+            background-size: 100% 28px;
+        }
+        .dark .bg-pattern-line {
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+        }
+        
+        /* 도트 패턴 템플릿 */
+        .bg-pattern-dot {
+            background-image: radial-gradient(rgba(0,0,0,0.12) 1.2px, transparent 1.2px);
+            background-size: 20px 20px;
+        }
+        .dark .bg-pattern-dot {
+            background-image: radial-gradient(rgba(255,255,255,0.12) 1.2px, transparent 1.2px);
+        }
+
+        /* 인쇄 최적화 스타일 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #content-meeting, #content-meeting * {
+                visibility: visible;
+            }
+            #content-meeting {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+            }
+            .print-hidden {
+                display: none !important;
+            }
+        }
+    </style>
+    <script>
+        // Tailwind Dark Mode 설정 확장
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans h-screen flex flex-col antialiased transition-colors duration-200 overflow-hidden">
+
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-4 py-2.5 sm:px-6 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-xl">
+                <i data-lucide="calendar-range" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">TabPlanner Pro</h1>
+                    <span class="px-2 py-0.5 text-[9px] font-black bg-indigo-600 text-white rounded-full uppercase tracking-wider">AI PWA Edition</span>
+                </div>
+                <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">루틴, 업무, 기분까지 챙기는 태블릿 올인원 다이어리</p>
+            </div>
+        </div>
+        
+        <!-- 상단 유틸리티 및 다크모드 제어 -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- 세로 모드 패널 퀵 스위치 버튼 (태블릿 세로 이하 화면에서만 표시) -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl lg:hidden" id="portraitViewSwitcher">
+                <button onclick="togglePortraitView('calendar')" id="btnViewCalendar" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> 캘린더
+                </button>
+                <button onclick="togglePortraitView('workspace')" id="btnViewWorkspace" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition">
+                    <i data-lucide="layout-template" class="w-3.5 h-3.5"></i> 작업대
+                </button>
+            </div>
+
+            <button onclick="openInstallModal()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-xl transition" title="태블릿 홈화면에 앱으로 등록">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                홈화면에 추가
+            </button>
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition" title="화면 테마 변경">
+                <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+            </button>
+            <button onclick="exportData()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all" title="플래너 전체 백업">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                내보내기
+            </button>
+            <button onclick="triggerImport()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all" title="플래너 데이터 복원">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                가져오기
+            </button>
+            <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+            <button onclick="promptClearAllData()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 rounded-lg transition-all">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                초기화
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 레이아웃: 강제 스크롤 제한 및 비율 고정 h-[calc(100vh-header)] -->
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden h-[calc(100vh-73px)] lg:h-[calc(100vh-65px)]">
+        
+        <!-- 왼쪽: 캘린더 영역 (한 화면 고정 핏을 위해 overflow-hidden 설정) -->
+        <section id="sidebarCalendar" class="w-full lg:w-[420px] xl:w-[460px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 sm:p-5 shrink-0 h-full overflow-hidden relative">
+            
+            <!-- 통합 검색창 (공간 절약을 위해 mb-2 적용) -->
+            <div class="mb-2.5 relative shrink-0">
+                <input type="text" id="globalSearchInput" oninput="debounceSearch()" placeholder="메모, 회의록, 업무, 일기 통합 스캔..." class="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 transition">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3"></i>
+                <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <!-- [수정] 검색 결과 표시 구역 (플로팅 팝업 레이어 형태로 변경하여 캘린더가 밑으로 밀리는 오류 원천 해결) -->
+            <div id="searchResultsArea" class="hidden absolute left-4 right-4 top-14 z-20 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-indigo-100 dark:border-indigo-950/60 shadow-xl rounded-xl max-h-[220px] overflow-y-auto space-y-2">
+                <div class="flex justify-between items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                    <span class="flex items-center gap-1"><i data-lucide="database" class="w-3 h-3"></i> 발견된 타임 기록</span>
+                    <button onclick="clearSearch()" class="hover:underline text-[10px]">스캔 창 닫기</button>
+                </div>
+                <ul id="searchResultsList" class="divide-y divide-slate-100 dark:divide-slate-800 space-y-1 text-xs">
+                    <!-- 스캔 결과 항목 유동적 삽입 -->
+                </ul>
+            </div>
+
+            <!-- 년/월 제어부 (mb-2로 컴팩트 조정) -->
+            <div class="flex items-center justify-between mb-2.5 shrink-0">
+                <div class="flex items-center gap-2">
+                    <button onclick="prevMonth()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="chevron-left" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </button>
+                    <span id="currentYearMonth" class="text-sm sm:text-base font-bold text-slate-800 dark:text-white">2026년 06월</span>
+                    <button onclick="nextMonth()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="chevron-right" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </button>
+                </div>
+                <button onclick="goToday()" class="px-2.5 py-1 text-[11px] font-semibold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 hover:bg-indigo-100 rounded-md transition">
+                    오늘
+                </button>
+            </div>
+
+            <!-- 요일 헤더 (mb-1로 세밀 조정) -->
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 mb-1 shrink-0">
+                <div class="text-rose-500">일</div>
+                <div>월</div>
+                <div>화</div>
+                <div>수</div>
+                <div>목</div>
+                <div>금</div>
+                <div class="text-indigo-500">토</div>
+            </div>
+
+            <!-- [수정] 캘린더 그리드 (grid-rows-6 및 flex-1 min-h-0를 적용하여 화면 세로 비율에 완벽히 피팅되도록 함) -->
+            <div id="calendarGrid" class="grid grid-cols-7 grid-rows-6 gap-1 sm:gap-1.5 flex-1 min-h-0">
+                <!-- JS에서 일별 템플릿 생성 삽입 예정 -->
+            </div>
+
+            <!-- 현 날짜 상세 인디케이터 및 컬러 태그 지정 (여백 mt-4로 최소화) -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3 shrink-0">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 dark:text-white" id="selectedDateLabel">2026년 06월 17일</h3>
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500 hidden md:block lg:hidden xl:block mt-0.5">오늘 지정한 컬러태그 및 라이프 요약지표입니다.</p>
+                    </div>
+                    <div id="activeDayIndicator" class="px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full flex items-center gap-1">
+                        <span class="w-1 h-1 bg-emerald-500 rounded-full animate-ping"></span>
+                        Selected
+                    </div>
+                </div>
+
+                <!-- 컬러 태그 분류 선택기 (컴팩트 그리드화) -->
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <button onclick="setDayTagColor(null)" class="w-5.5 h-5.5 rounded-full bg-slate-200 dark:bg-slate-700 ring-2 ring-transparent hover:scale-105 transition flex items-center justify-center text-[10px]" title="없음">
+                            <i data-lucide="slash" class="w-3 h-3 text-slate-400"></i>
+                        </button>
+                        <button onclick="setDayTagColor('red')" class="w-5.5 h-5.5 rounded-full bg-rose-500 hover:scale-105 transition" title="중요/급함"></button>
+                        <button onclick="setDayTagColor('yellow')" class="w-5.5 h-5.5 rounded-full bg-amber-400 hover:scale-105 transition" title="아이디어"></button>
+                        <button onclick="setDayTagColor('green')" class="w-5.5 h-5.5 rounded-full bg-emerald-500 hover:scale-105 transition" title="개인약속"></button>
+                        <button onclick="setDayTagColor('blue')" class="w-5.5 h-5.5 rounded-full bg-blue-500 hover:scale-105 transition" title="회사미팅"></button>
+                        <button onclick="setDayTagColor('purple')" class="w-5.5 h-5.5 rounded-full bg-purple-500 hover:scale-105 transition" title="공부/공식일정"></button>
+                        <span id="currentTagName" class="text-[10px] text-slate-400 dark:text-slate-500 ml-auto font-semibold">태그 없음</span>
+                    </div>
+                </div>
+                
+                <!-- 요약 통계 정보 (더 작게 핏 가공) -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
+                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">할 일 완료도</span>
+                        <span id="statTodo" class="text-xs font-bold text-slate-700 dark:text-slate-300">0/0</span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
+                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">습관 달성</span>
+                        <span id="statHabit" class="text-xs font-bold text-slate-700 dark:text-slate-300">0%</span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-center">
+                        <span class="block text-[9px] text-slate-400 dark:text-slate-500">감정 상태</span>
+                        <span id="statMood" class="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">기록없음</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 오른쪽: 작업 공간 영역 (태블릿 세로 모드 시 기본 숨김, 수동 제어용 ID 추가) -->
+        <section id="mainWorkspace" class="flex-1 hidden lg:flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950 h-full overflow-hidden">
+            
+            <!-- 작업용 카테고리 탭 리스트 -->
+            <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex overflow-x-auto gap-4 shrink-0">
+                <button onclick="switchTab('todo')" id="tab-todo" class="py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="check-square" class="w-4 h-4"></i>
+                    할 일
+                </button>
+                <button onclick="switchTab('work')" id="tab-work" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="briefcase" class="w-4 h-4 text-blue-500"></i>
+                    금일 작업사항
+                </button>
+                <button onclick="switchTab('habit')" id="tab-habit" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="award" class="w-4 h-4 text-amber-500"></i>
+                    습관 트래커
+                </button>
+                <button onclick="switchTab('mood')" id="tab-mood" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="smile" class="w-4 h-4 text-emerald-500"></i>
+                    감정 & 일기
+                </button>
+                <button onclick="switchTab('meeting')" id="tab-meeting" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    회의록
+                </button>
+                <button onclick="switchTab('note')" id="tab-note" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    텍스트 메모
+                </button>
+                <button onclick="switchTab('pencil')" id="tab-pencil" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                    펜슬 드로잉
+                </button>
+                <button onclick="switchTab('ai')" id="tab-ai" class="py-3 px-1 border-b-2 border-transparent text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i>
+                    AI 어시스턴트
+                </button>
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-rose-500"></i>
+                    통계 대시보드
+                </button>
+            </div>
+
+            <!-- 작업대 내용 -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6" id="workspaceContainer">
+                
+                <!-- 1. 할 일 리스트 탭 -->
+                <div id="content-todo" class="tab-content block space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-base font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>오늘의 할 일 추가
+                        </h2>
+                        <div class="flex gap-2">
+                            <input type="text" id="todoInput" placeholder="새로운 할 일을 입력하세요..." class="flex-1 px-4 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-100">
+                            <button onclick="addTodo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1 shrink-0">
+                                <i data-lucide="plus" class="w-4 h-4"></i> 추가
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white">할 일 목록</h2>
+                            <span id="todoProgress" class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">0개 완료됨</span>
+                        </div>
+                        <ul id="todoList" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- 할 일 항목 동적 생성 영역 -->
+                        </ul>
+                        <div id="todoEmptyState" class="text-center py-8 text-slate-400 text-sm hidden">
+                            <i data-lucide="check-circle-2" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                            할 일이 없습니다. 새로 등록해 보세요!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1-2. 금일 작업사항 탭 -->
+                <div id="content-work" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-blue-500 rounded-full"></span>금일 작업 일지 & 상태 제어
+                            </h2>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500 dark:text-slate-400">전체 진행 상황:</span>
+                                <select id="workStatus" onchange="saveWorkLogData()" class="px-2.5 py-1 text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none">
+                                    <option value="ready">⏳ 진행 대기</option>
+                                    <option value="progress">⚡ 진행 중</option>
+                                    <option value="partial">🌗 일부 완료</option>
+                                    <option value="done">✅ 전체 완료</option>
+                                </select>
+                                <button onclick="saveWorkLogData(true)" class="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="save" class="w-3.5 h-3.5"></i> 저장하기
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 타임라인 스케줄러 -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400">📅 시간대별 주요 스케줄 및 기록 (Timeline)</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">09 - 10시</span>
+                                    <input type="text" id="time-09" placeholder="예: 데일리 미팅 및 메일 수신 확인" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">10 - 11시</span>
+                                    <input type="text" id="time-10" placeholder="오전 집중 작업 기록" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">11 - 12시</span>
+                                    <input type="text" id="time-11" placeholder="기획 검토 및 조율" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">12 - 14시</span>
+                                    <input type="text" id="time-12" placeholder="점심 식사 및 휴식" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">14 - 15시</span>
+                                    <input type="text" id="time-14" placeholder="오후 세션 미팅 참가" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">15 - 16시</span>
+                                    <input type="text" id="time-15" placeholder="핵심 모듈 개발 및 개발 리서치" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">16 - 17시</span>
+                                    <input type="text" id="time-16" placeholder="문서화 작업 및 리뷰" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">17 - 18시</span>
+                                    <input type="text" id="time-17" placeholder="작업 테스트 및 일간 보고 준비" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                                <div class="flex items-center gap-2 md:col-span-2 border-t border-slate-200 dark:border-slate-700 pt-2 mt-1">
+                                    <span class="w-16 text-xs font-bold text-slate-500 dark:text-slate-400">18시 이후</span>
+                                    <input type="text" id="time-18" placeholder="잔여 야근 작업 계획 및 피드백 정리" oninput="debounceSaveWorkLog()" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 세부 작업 상세 입력 템플릿 -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400">✔️ 금일 주요 완료 작업</label>
+                                <textarea id="workSummary" rows="4" oninput="debounceSaveWorkLog()" placeholder="오늘 매듭지은 중요 성과들을 기술하세요..." class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400">➡️ 미완료 및 이월 사항</label>
+                                <textarea id="workPending" rows="4" oninput="debounceSaveWorkLog()" placeholder="시간 부족으로 미루어지거나 보류된 항목..." class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400">⚠️ 특이 사항 및 이슈</label>
+                                <textarea id="workIssues" rows="4" oninput="debounceSaveWorkLog()" placeholder="진행 중 봉착한 허들, 조율이 필요한 문제점..." class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 습관 트래커 탭 -->
+                <div id="content-habit" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-base font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-amber-500 rounded-full"></span>새로운 습관 설정하기
+                        </h2>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">설정된 습관은 매일 유지되며, 체크한 여부만 해당 일자에 개별 저장됩니다.</p>
+                        <div class="flex gap-2">
+                            <input type="text" id="habitInput" placeholder="예: 독서 30분, 물 2L 마시기, 비타민 챙겨먹기..." class="flex-1 px-4 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 dark:text-slate-100">
+                            <button onclick="addGlobalHabit()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-semibold transition flex items-center gap-1 shrink-0">
+                                <i data-lucide="plus" class="w-4 h-4"></i> 루틴 추가
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white">오늘의 루틴 점검표</h2>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500" id="habitProgressPercentage">오늘 진행률: 0%</span>
+                                <div class="w-24 bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                    <div id="habitProgressBar" class="bg-gradient-to-r from-amber-400 to-amber-600 h-full transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <ul id="habitList" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- 습관 항목 리스트 동적 렌더링 -->
+                        </ul>
+                        <div id="habitEmptyState" class="text-center py-10 text-slate-400 text-sm hidden">
+                            <i data-lucide="award" class="w-12 h-12 mx-auto mb-2 opacity-30 text-amber-500"></i>
+                            등록된 습관이 없습니다. 매일 지키고 싶은 건강한 습관을 추가해 보세요!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 감정 및 일기 탭 -->
+                <div id="content-mood" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>오늘 나의 감정 상태는 어떤가요?
+                        </h2>
+                        
+                        <!-- 감정 선택 버튼 목록 -->
+                        <div class="grid grid-cols-5 gap-3 max-w-md mx-auto text-center py-2">
+                            <button onclick="setDayMood('excellent')" id="mood-excellent" class="mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500">
+                                <span class="text-2xl">😄</span>
+                                <span class="text-[10px] font-bold">최고예요</span>
+                            </button>
+                            <button onclick="setDayMood('good')" id="mood-good" class="mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500">
+                                <span class="text-2xl">🙂</span>
+                                <span class="text-[10px] font-bold">좋아요</span>
+                            </button>
+                            <button onclick="setDayMood('neutral')" id="mood-neutral" class="mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500">
+                                <span class="text-2xl">😐</span>
+                                <span class="text-[10px] font-bold">보통이에요</span>
+                            </button>
+                            <button onclick="setDayMood('bad')" id="mood-bad" class="mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500">
+                                <span class="text-2xl">🙁</span>
+                                <span class="text-[10px] font-bold">별로예요</span>
+                            </button>
+                            <button onclick="setDayMood('terrible')" id="mood-terrible" class="mood-selector-btn p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition-all flex flex-col items-center gap-1 text-slate-500">
+                                <span class="text-2xl">😢</span>
+                                <span class="text-[10px] font-bold">힘들어요</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>오늘의 마음의 목소리 (기록식 일기)
+                            </h2>
+                            <button onclick="saveDiary()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> 일기 저장하기
+                            </button>
+                        </div>
+
+                        <div>
+                            <textarea id="diaryContent" rows="8" placeholder="오늘 하루는 어땠나요? 기분 변화나 느꼈던 감정, 기억하고 싶은 생각들을 넉넉히 기록해 보세요. 이 기록은 AI 어시스턴트 분석의 귀중한 토대가 됩니다." class="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 회의록 작성 탭 -->
+                <div id="content-meeting" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 print-hidden flex-wrap gap-2">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>회의록 & 미팅 정보
+                            </h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button onclick="toggleSpeechToText('meetingNotes')" id="stt-meeting-btn" class="px-3 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5" title="음성 받아쓰기 실행/중지">
+                                    <i data-lucide="mic" class="w-3.5 h-3.5"></i> <span>받아쓰기</span>
+                                </button>
+                                <button onclick="printMeetingMinutes()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> 회의록 인쇄 / PDF 저장
+                                </button>
+                                <button onclick="saveMeetingMinutes()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="save" class="w-3.5 h-3.5"></i> 회의록 임시 저장
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 인쇄 시 나타나는 헤더 정보 (평소 숨김) -->
+                        <div class="hidden print:block border-b-2 border-slate-800 pb-4 mb-4">
+                            <h1 class="text-2xl font-bold text-slate-900">회의록 보고서 (TabPlanner)</h1>
+                            <p class="text-sm text-slate-500 mt-1" id="printDateLabel">작성 날짜: 2026-06-17</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">회의명 / 미팅 주제</label>
+                                <input type="text" id="meetingTitle" placeholder="예: 디자인 시안 검토 회의" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">참석자</label>
+                                <input type="text" id="meetingAttendees" placeholder="예: 홍길동, 이순신, 김철수" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">핵심 결정 및 전달 사항</label>
+                            <textarea id="meetingDecisions" rows="3" placeholder="의결된 결정 사항들을 요약해 적어두세요." class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex justify-between items-center">
+                                <span>상세 회의 내용</span>
+                                <span id="stt-status-meetingNotes" class="text-[10px] text-rose-500 font-bold hidden animate-pulse">● 실시간 음성 기록 중...</span>
+                            </label>
+                            <textarea id="meetingNotes" rows="10" placeholder="자유롭게 상세 논의 사항을 작성해 주세요..." class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 텍스트 메모 탭 -->
+                <div id="content-note" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[calc(100vh-280px)] min-h-[350px]">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 shrink-0 flex-wrap gap-2">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>오늘의 텍스트 노트
+                            </h2>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleSpeechToText('noteContent')" id="stt-note-btn" class="px-3 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="mic" class="w-3.5 h-3.5"></i> <span>받아쓰기</span>
+                                </button>
+                                <span id="noteSavedStatus" class="text-xs text-slate-400 dark:text-slate-500">자동 저장됨</span>
+                                <button onclick="saveNoteData()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="save" class="w-3.5 h-3.5"></i> 수동 저장
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-1 relative flex flex-col min-h-0">
+                            <span id="stt-status-noteContent" class="absolute top-2 right-2 text-[10px] text-rose-500 font-bold bg-white/85 dark:bg-slate-900/85 px-2 py-1 rounded shadow-sm hidden animate-pulse">● 실시간 음성 기록 중...</span>
+                            <textarea id="noteContent" oninput="debounceSaveNote()" class="flex-1 w-full p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-slate-800 dark:text-slate-100 text-sm leading-relaxed" placeholder="이곳에 자유롭게 업무 기록, 생각나는 내용, 번뜩이는 아이디어를 기록해보세요..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. 펜슬 필기 캔버스 탭 -->
+                <div id="content-pencil" class="tab-content hidden flex flex-col h-[calc(100vh-220px)] min-h-[420px]">
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-t-xl border border-slate-200 dark:border-slate-800 border-b-0 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                <button onclick="setDrawingMode('pen')" id="tool-pen" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i> 일반 펜
+                                </button>
+                                <button onclick="setDrawingMode('highlighter')" id="tool-highlighter" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition">
+                                    <i data-lucide="highlighter" class="w-3.5 h-3.5"></i> 형광펜
+                                </button>
+                                <button onclick="setDrawingMode('eraser')" id="tool-eraser" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition">
+                                    <i data-lucide="eraser" class="w-3.5 h-3.5"></i> 지우개
+                                </button>
+                            </div>
+
+                            <div id="paletteContainer" class="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800 pr-3">
+                                <button onclick="setPenColor('#0f172a')" class="color-btn w-6 h-6 rounded-full bg-slate-900 ring-2 ring-indigo-500 border-2 border-white dark:border-slate-800" title="기본 다크"></button>
+                                <button onclick="setPenColor('#ef4444')" class="color-btn w-6 h-6 rounded-full bg-red-500 border-2 border-white dark:border-slate-800" title="빨간색"></button>
+                                <button onclick="setPenColor('#3b82f6')" class="color-btn w-6 h-6 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800" title="파란색"></button>
+                                <button onclick="setPenColor('#10b981')" class="color-btn w-6 h-6 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-800" title="초록색"></button>
+                                <button onclick="setPenColor('#eab308')" class="color-btn w-6 h-6 rounded-full bg-yellow-500 border-2 border-white dark:border-slate-800" title="형광노랑"></button>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">굵기:</span>
+                                <input type="range" id="lineWidthRange" min="1" max="40" value="3" oninput="updateLineWidth(this.value)" class="w-20 accent-indigo-600 cursor-pointer">
+                                <span id="lineWidthVal" class="text-xs text-slate-600 dark:text-slate-300 font-bold w-6">3px</span>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 ml-2">
+                                <button onclick="toggleStraightLineAssist()" id="straightLineBtn" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">
+                                    <i data-lucide="ruler" class="w-3.5 h-3.5"></i>
+                                    <span>직선 보정 Off</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                <button onclick="adjustZoom(-0.1)" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
+                                <span id="zoomPercent" class="w-12 text-center">100%</span>
+                                <button onclick="adjustZoom(0.1)" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="resetZoomAndPan()" class="p-1 hover:bg-white dark:hover:bg-slate-900 rounded" title="크기 및 배율 초기화"><i data-lucide="maximize" class="w-3.5 h-3.5"></i></button>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800 pr-2">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">배경:</span>
+                                <select id="templateSelect" onchange="changeCanvasTemplate(this.value)" class="px-2 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg focus:outline-none">
+                                    <option value="none">무지 (Plain)</option>
+                                    <option value="grid">모눈 (Grid)</option>
+                                    <option value="line">줄노트 (Line)</option>
+                                    <option value="dot">도트 (Dot)</option>
+                                </select>
+                            </div>
+
+                            <button onclick="downloadHandwriting()" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition">
+                                <i data-lucide="image" class="w-4 h-4"></i> 이미지 추출
+                            </button>
+                            <button onclick="promptClearCanvas()" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> 비우기
+                            </button>
+                            <button onclick="saveCanvas()" class="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> 필기 저장
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-b-xl overflow-hidden shadow-sm relative canvas-container">
+                        <div class="absolute top-2 left-2 bg-slate-950/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none z-10 font-medium">
+                            ✌️ 두 손가락으로 줌 및 이동 가능
+                        </div>
+                        <canvas id="noteCanvas" class="w-full h-full block cursor-crosshair bg-transparent"></canvas>
+                        <div id="canvasLoader" class="absolute inset-0 bg-white/70 dark:bg-slate-900/70 flex items-center justify-center hidden z-20">
+                            <div class="flex flex-col items-center gap-2">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">필기 데이터 로드 중...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. AI 분석 탭 -->
+                <div id="content-ai" class="tab-content hidden space-y-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- AI 분석 제어판 -->
+                        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 h-fit">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>AI 스마트 비서 설정
+                            </h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">분석 테마 목적</label>
+                                    <div class="space-y-2">
+                                        <button type="button" id="ai-task-summarize" onclick="setAiTask('summarize')" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-2">
+                                            <i data-lucide="check-square" class="w-4 h-4"></i>
+                                            <div>
+                                                <p class="font-bold">일일 요약 및 액션 아이템</p>
+                                                <p class="text-[10px] text-indigo-500 dark:text-indigo-400 mt-0.5">업무 일지에서 핵심 To-Do를 자동 추출합니다.</p>
+                                            </div>
+                                        </button>
+                                        <button type="button" id="ai-task-feedback" onclick="setAiTask('feedback')" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2">
+                                            <i data-lucide="heart" class="w-4 h-4 text-rose-500"></i>
+                                            <div>
+                                                <p class="font-bold">심리 케어 & 맞춤 공감</p>
+                                                <p class="text-[10px] text-slate-400 mt-0.5">그날의 마음 상태와 일기를 따뜻하게 보살핍니다.</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">분석 대상 원본</label>
+                                    <select id="aiSourceSelect" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500">
+                                        <option value="both">📝 오늘의 모든 텍스트 기록 통합 스캔</option>
+                                        <option value="work">💼 오늘의 업무 일지 & 회의록만</option>
+                                        <option value="note">❤️ 마음 일기 & 텍스트 메모만</option>
+                                    </select>
+                                </div>
+                                <button onclick="runGeminiAi()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i> AI 브리핑 스캔 시작
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- AI 스마트 비서 분석 리포트 -->
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[420px]">
+                            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 shrink-0">
+                                <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>AI 인텔리전스 리포트
+                                </h2>
+                                <span id="aiTimeLabel" class="text-xs text-slate-400 dark:text-slate-500 font-semibold">대기 중</span>
+                            </div>
+                            <div class="flex-1 relative">
+                                <div id="aiLoader" class="absolute inset-0 bg-white/85 dark:bg-slate-900/85 flex flex-col items-center justify-center gap-3 hidden z-10">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400 font-bold">인공지능 어시스턴트가 맥락 분석 및 제안서 작성 중...</span>
+                                </div>
+                                <div id="aiResponseContainer" class="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-4 overflow-y-auto max-h-[500px] leading-relaxed">
+                                    <div class="text-center py-12 text-slate-400 dark:text-slate-500">
+                                        <i data-lucide="message-square-dashed" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                                        <p>왼쪽 패널에서 분석 대상 데이터를 정한 뒤 브리핑 스캔을 돌려주세요.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 dark:border-slate-800 pt-3 mt-4 flex justify-end shrink-0">
+                                <button id="applyTodosBtn" onclick="applyExtractedTodos()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 hidden shadow-sm">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 리포트 내 할 일을 오늘의 '할 일' 목록에 자동 삽입
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. 통계 대시보드 탭 -->
+                <div id="content-dashboard" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-3">
+                            <div>
+                                <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span class="w-1 h-4 bg-rose-500 rounded-full"></span>라이프 & 업무 종합 분석 리포트
+                                </h2>
+                                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">지정한 달력 연월을 스캔하여 일기 감정 상태, 습관 지속 점수, 업무 완수 성과를 지표로 시각화합니다.</p>
+                            </div>
+                            <button onclick="renderDashboard()" class="px-3.5 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5 animate-spin"></i> 데이터 새로고침
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- A. 습관 분석 현황 보드 -->
+                            <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <i data-lucide="award" class="w-4 h-4 text-amber-500"></i> 습관 완수 마스터 비율
+                                </h3>
+                                <div class="text-center py-4 space-y-2">
+                                    <span id="dashHabitRate" class="text-4xl font-black text-amber-500 block">0%</span>
+                                    <span class="text-[10px] text-slate-400 dark:text-slate-500 block">선택 기간 총 습관 체크 성공도</span>
+                                </div>
+                                <div id="dashHabitList" class="space-y-2 text-xs border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                                    <!-- 습관별 실천율 주입구 -->
+                                </div>
+                            </div>
+
+                            <!-- B. 감정 트랙 수치화 보드 (Simple SVG Donut) -->
+                            <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <i data-lucide="smile" class="w-4 h-4 text-emerald-500"></i> 이번 달 감정 지도 분포
+                                </h3>
+                                <div class="flex items-center justify-center h-40">
+                                    <div class="w-32 h-32 relative flex items-center justify-center">
+                                        <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                                            <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="rgba(148,163,184,0.12)" stroke-width="3.5"></circle>
+                                            <circle id="dashMoodExcellentArc" cx="18" cy="18" r="15.915" fill="transparent" stroke="#10b981" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                            <circle id="dashMoodGoodArc" cx="18" cy="18" r="15.915" fill="transparent" stroke="#3b82f6" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                            <circle id="dashMoodNeutralArc" cx="18" cy="18" r="15.915" fill="transparent" stroke="#eab308" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                            <circle id="dashMoodBadArc" cx="18" cy="18" r="15.915" fill="transparent" stroke="#f97316" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                            <circle id="dashMoodTerribleArc" cx="18" cy="18" r="15.915" fill="transparent" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                        </svg>
+                                        <div class="absolute flex flex-col items-center">
+                                            <span id="dashMoodTotal" class="text-base font-black text-slate-800 dark:text-white">0회</span>
+                                            <span class="text-[8px] text-slate-400 dark:text-slate-500">감정 기록 회수</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                    <div class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span>최고: <span id="dashMoodExcellentCnt" class="font-bold">0회</span></div>
+                                    <div class="flex items-center gap-1"><span class="w-2 h-2 bg-blue-500 rounded-full"></span>좋음: <span id="dashMoodGoodCnt" class="font-bold">0회</span></div>
+                                    <div class="flex items-center gap-1"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span>보통: <span id="dashMoodNeutralCnt" class="font-bold">0회</span></div>
+                                    <div class="flex items-center gap-1"><span class="w-2 h-2 bg-orange-500 rounded-full"></span>별로: <span id="dashMoodBadCnt" class="font-bold">0회</span></div>
+                                    <div class="flex items-center gap-2 md:col-span-2 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-0.5">
+                                        <div class="flex items-center gap-1"><span class="w-2 h-2 bg-red-500 rounded-full"></span>힘듦: <span id="dashMoodTerribleCnt" class="font-bold">0회</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- C. 업무 리스트 완료도 분석 보드 -->
+                            <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 flex flex-col justify-between">
+                                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <i data-lucide="check-square" class="w-4 h-4 text-blue-500"></i> 업무 완수 트렌드
+                                </h3>
+                                <div class="space-y-4 py-2">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-500 dark:text-slate-400">월간 등록 전체 To-Do</span>
+                                        <span id="dashTodoTotal" class="font-bold text-slate-700 dark:text-slate-300">0개</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-500 dark:text-slate-400">완료 완수 완료수</span>
+                                        <span id="dashTodoDone" class="font-bold text-emerald-600 dark:text-emerald-400">0개</span>
+                                    </div>
+                                    <div class="space-y-1 pt-2">
+                                        <div class="flex justify-between text-[10px] text-slate-400 font-semibold">
+                                            <span>종합 완수율</span>
+                                            <span id="dashTodoRate" class="text-indigo-600 dark:text-indigo-400">0%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                            <div id="dashTodoBar" class="bg-indigo-600 dark:bg-indigo-400 h-full transition-all duration-300" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
+                                    💡 팁: '금일 작업사항' 및 '할 일'에 등록된 계획을 충실히 매듭지어 체크할수록 완료 곡선 점수가 비약적으로 차오릅니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 집중 타이머 및 백색 소음 플레이어 -->
+    <div id="focusWidget" class="fixed bottom-6 left-6 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 w-64 transition-all duration-300 max-h-[50px] overflow-hidden hover:max-h-[300px] group">
+        <div class="flex items-center justify-between pointer-events-auto cursor-pointer" onclick="toggleFocusWidgetExpand()">
+            <div class="flex items-center gap-2">
+                <div id="focusPulse" class="w-2.5 h-2.5 bg-slate-300 rounded-full transition-all duration-300"></div>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-200" id="focusWidgetTitle">집중 타이머 & 백색 소음</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="focusTimeDisplay" class="text-xs font-black text-indigo-600 dark:text-indigo-400">25:00</span>
+                <i data-lucide="chevron-up" class="w-4 h-4 text-slate-400 group-hover:rotate-180 transition-transform duration-300" id="focusWidgetArrow"></i>
+            </div>
+        </div>
+        
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="flex items-center justify-center gap-2">
+                <button onclick="adjustFocusTime(-300)" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-lg"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                <span class="text-2xl font-black text-slate-800 dark:text-white w-24 text-center tracking-wider" id="focusTimeMain">25:00</span>
+                <button onclick="adjustFocusTime(300)" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-lg"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="focusStartBtn" onclick="togglePomodoroTimer()" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작
+                </button>
+                <button onclick="resetPomodoroTimer()" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold rounded-lg transition">
+                    초기화
+                </button>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 flex items-center gap-1 uppercase tracking-wider">
+                        <i data-lucide="headphones" class="w-3 h-3 text-emerald-500"></i> Ambient Rain Sound
+                    </span>
+                    <button id="noiseToggleBtn" onclick="toggleWhiteNoise()" class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:underline">빗소리 재생</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="volume-2" class="w-3 h-3 text-slate-400"></i>
+                    <input type="range" id="noiseVolume" min="0" max="100" value="35" oninput="changeNoiseVolume(this.value)" class="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA 홈 화면 추가 안내 모달 -->
+    <div id="installModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5 text-indigo-600 dark:text-indigo-400">
+                    <div class="p-2 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl">
+                        <i data-lucide="smartphone" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">태블릿 홈화면에 바로가기 앱 추가</h3>
+                </div>
+                <button onclick="closeInstallModal()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                홈 화면에 북마크 또는 독립형 웹 앱으로 추가하면 브라우저의 상단 주소창이나 제어 도구들이 완전히 제거되어 더욱 몰입도 높은 전체 화면 디지털 다이어리로 사용하실 수 있습니다.
+            </p>
+
+            <!-- OS 선택 탭 -->
+            <div class="flex border-b border-slate-200 dark:border-slate-700">
+                <button id="btnTabIos" onclick="switchInstallTab('ios')" class="flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center">
+                     iPad / iPhone (Safari)
+                </button>
+                <button id="btnTabAndroid" onclick="switchInstallTab('android')" class="flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800">
+                    안드로이드 태블릿 (Chrome)
+                </button>
+            </div>
+
+            <!-- iOS 안내 콘텐츠 -->
+            <div id="guideIos" class="space-y-3 py-2 text-xs text-slate-600 dark:text-slate-300">
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">1</span>
+                    <p class="leading-relaxed">Safari 브라우저 하단 또는 우측 상단의 <strong class="text-indigo-600 dark:text-indigo-400 font-bold">공유 버튼</strong>(위쪽 화살표가 그려진 상자 아이콘 <i data-lucide="share" class="w-3.5 h-3.5 inline"></i>)을 터치합니다.</p>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">2</span>
+                    <p class="leading-relaxed">하단으로 목록을 조금 스크롤하여 <strong class="text-slate-900 dark:text-white font-bold">'홈 화면에 추가'</strong> 아이콘을 찾아 선택합니다.</p>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">3</span>
+                    <p class="leading-relaxed">우측 상단의 <strong class="text-emerald-600 font-bold">'추가'</strong>를 터치하면 바탕화면에 다이어리 바로가기 앱이 생성됩니다.</p>
+                </div>
+            </div>
+
+            <!-- 안드로이드 안내 콘텐츠 -->
+            <div id="guideAndroid" class="space-y-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden">
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">1</span>
+                    <p class="leading-relaxed">Chrome 또는 삼성 인터넷 우측 상단의 <strong class="text-indigo-600 dark:text-indigo-400 font-bold">더보기 버튼</strong>(세로 점 세 개 <i data-lucide="more-vertical" class="w-3.5 h-3.5 inline"></i> 또는 석 삼 자 <i data-lucide="menu" class="w-3.5 h-3.5 inline"></i> 모양)을 누릅니다.</p>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">2</span>
+                    <p class="leading-relaxed">옵션에서 <strong class="text-slate-900 dark:text-white font-bold">'홈 화면에 추가'</strong> 또는 <strong class="text-slate-900 dark:text-white font-bold">'앱 설치'</strong> 메뉴를 찾아 선택합니다.</p>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <span class="w-5 h-5 flex items-center justify-center font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 rounded-full shrink-0">3</span>
+                    <p class="leading-relaxed">팝업 안내 창이 나오면 <strong class="text-emerald-600 font-bold">'추가/설치'</strong>를 결정하고 마무리합니다.</p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeInstallModal()" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-lg">
+                    확인했습니다
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 확인용 알림/확인창 커스텀 모달 -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="flex items-center gap-3 text-rose-500">
+                <div class="p-2.5 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">정말 수행하시겠습니까?</h3>
+            </div>
+            <p id="confirmModalDesc" class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">이 작업은 되돌릴 수 없으며, 기존에 작성된 데이터가 모두 소거됩니다.</p>
+            <div class="flex items-center gap-2 pt-2">
+                <button onclick="closeConfirmModal(false)" class="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">취소</button>
+                <button id="confirmModalOkBtn" class="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">수행</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div id="toastMessage" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 ease-out z-50 flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-sm">
+        <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
+        <span id="toastText">성공적으로 처리되었습니다.</span>
+    </div>
+
+    <!-- 가이드 안내 모달 -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
+                <div class="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">TabPlanner Pro v4.5</h3>
+                    <p class="text-xs text-indigo-500 font-semibold">금일 작업사항 & 타임라인 신규 업데이트</p>
+                </div>
+            </div>
+            
+            <div class="space-y-3 text-slate-600 dark:text-slate-300 text-sm">
+                <p>애플펜슬 필기 및 업무 다이어리를 넘어서 시간대별 작업 타임라인과 루틴까지 돌볼 수 있는 초맞춤형 업무 플래너로 탄생했습니다.</p>
+                <ul class="space-y-2 text-xs bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-500 font-bold">•</span>
+                        <span><strong>금일 작업사항:</strong> 시간대별 핵심 스케줄과 업무 상태(진행중/완료)를 체계적으로 바인딩하세요.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-500 font-bold">•</span>
+                        <span><strong>습관 트래커:</strong> 매일 실천하고픈 습관 목표를 루틴으로 지정해 트래킹해 보세요.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-500 font-bold">•</span>
+                        <span><strong>AI 보고서 및 피드백:</strong> 그날의 기분, 타임라인 업무 상태를 AI가 인지하여 To-Do를 추출하고 코칭해 줍니다.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeGuide()" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-lg">
+                    지금 바로 다이어리 시작하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 상태 전역 변수 및 설정 ---
+        let db = null;
+        let currentDate = new Date(); // 달력 연월 표시 기준
+        let selectedDateStr = ""; // 선택된 날짜 (Format: YYYY-MM-DD)
+        let activeTab = "todo"; // 현재 탭
+
+        // 습관 관련 상태 리스트
+        let globalHabits = JSON.parse(localStorage.getItem("tabPlanner_globalHabits")) || ["물 2L 마시기", "하루 30분 독서", "가벼운 스트레칭"];
+
+        // 드로잉 캔버스 및 제스처 변수
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let penColor = "#0f172a";
+        let penWidth = 3;
+        let drawMode = 'pen'; // 'pen' | 'highlighter' | 'eraser'
+        let currentTemplate = 'none'; // 'none' | 'grid' | 'line' | 'dot'
+        let straightLineAssist = false; // 직선 보정 여부
+        let strokeStartX = 0, strokeStartY = 0; // 직선 시작 좌표 백업용
+        
+        // 캔버스 줌 & 이동 상태 값
+        let scale = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startTouchDistance = 0;
+        let lastTouchX = 0, lastTouchY = 0;
+
+        let noteSaveTimeout = null;
+        let workLogSaveTimeout = null;
+
+        // 음성 인식 (Web Speech STT) 객체
+        let recognition = null;
+        let activeSttTargetId = null;
+
+        // AI 관련 변수
+        let aiTask = "summarize"; // "summarize" | "feedback"
+        let aiExtractedTodosCache = []; // 추출된 투두 목록 버퍼
+
+        // 커스텀 모달 콜백 홀더
+        let confirmModalCallback = null;
+
+        // 포모도로 및 백색소음 관련 변수
+        let searchTimeout = null;
+        let pomodoroTimer = null;
+        let focusSecondsLeft = 1500; // 기본 25분 세팅
+        let isPomodoroRunning = false;
+        let audioCtx = null;
+        let noiseNode = null;
+        let filterNode = null;
+        let gainNode = null;
+        let isWhiteNoisePlaying = false;
+        let isWidgetExpanded = false;
+
+        // --- 2. PWA 홈 화면 설치 및 가로/세로 모드 뷰 스위치 제어 ---
+        function openInstallModal() {
+            document.getElementById("installModal").classList.remove("hidden");
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                switchInstallTab('ios');
+            } else if (/android/i.test(userAgent)) {
+                switchInstallTab('android');
+            }
+        }
+
+        function closeInstallModal() {
+            document.getElementById("installModal").classList.add("hidden");
+        }
+
+        function switchInstallTab(platform) {
+            const tabIos = document.getElementById("btnTabIos");
+            const tabAndroid = document.getElementById("btnTabAndroid");
+            const guideIos = document.getElementById("guideIos");
+            const guideAndroid = document.getElementById("guideAndroid");
+
+            if (platform === 'ios') {
+                tabIos.className = "flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center";
+                tabAndroid.className = "flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800";
+                guideIos.classList.remove("hidden");
+                guideAndroid.classList.add("hidden");
+            } else {
+                tabAndroid.className = "flex-1 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 text-center";
+                tabIos.className = "flex-1 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 dark:text-slate-400 text-center hover:text-slate-800";
+                guideAndroid.classList.remove("hidden");
+                guideIos.classList.add("hidden");
+            }
+        }
+
+        // [수정] 세로 모드 대응 뷰 교체 함수
+        function togglePortraitView(target) {
+            const sidebar = document.getElementById("sidebarCalendar");
+            const workspace = document.getElementById("mainWorkspace");
+            const btnCal = document.getElementById("btnViewCalendar");
+            const btnWork = document.getElementById("btnViewWorkspace");
+
+            if (target === 'calendar') {
+                sidebar.classList.remove("hidden");
+                sidebar.classList.add("flex");
+                workspace.classList.add("hidden");
+                workspace.classList.remove("flex");
+
+                btnCal.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
+                btnWork.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition";
+            } else {
+                sidebar.classList.add("hidden");
+                sidebar.classList.remove("flex");
+                workspace.classList.remove("hidden");
+                workspace.classList.add("flex");
+
+                btnWork.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
+                btnCal.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition";
+
+                // 필기 드로잉 탭인 경우 가상 리사이즈 트리거
+                if (activeTab === 'pencil') {
+                    setTimeout(handleCanvasResize, 150);
+                }
+            }
+        }
+
+        // 반응형 해상도 추적 및 초기 배치 설정
+        function handleOrientationLayout() {
+            const sidebar = document.getElementById("sidebarCalendar");
+            const workspace = document.getElementById("mainWorkspace");
+            const switcher = document.getElementById("portraitViewSwitcher");
+
+            if (window.innerWidth >= 1024) {
+                // 데스크톱 / 가로형 레이아웃 복구
+                sidebar.classList.remove("hidden");
+                sidebar.classList.add("flex");
+                workspace.classList.remove("hidden");
+                workspace.classList.add("flex");
+                switcher.classList.add("hidden");
+            } else {
+                // 모바일 및 태블릿 세로형 레이아웃 스위처 노출
+                switcher.classList.remove("hidden");
+                // 기본으로 캘린더 노출
+                togglePortraitView('calendar');
+            }
+        }
+
+        // --- 3. 초기 기동 & 설정 불러오기 ---
+        window.onload = function() {
+            lucide.createIcons();
+            initTheme();
+            initSpeechRecognition();
+
+            const today = new Date();
+            selectedDateStr = formatDate(today);
+            currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            initIndexedDB().then(() => {
+                renderCalendar();
+                loadSelectedDateData();
+                checkFirstVisit();
+                handleOrientationLayout();
+            });
+
+            initCanvas();
+            updateTimerDisplay();
+            
+            // 해상도 변경 혹은 화면 회전 시 레이아웃 제어 등록
+            window.addEventListener('resize', () => {
+                handleCanvasResize();
+                handleOrientationLayout();
+            });
+        };
+
+        // 다크모드 시스템 로직
+        function initTheme() {
+            if (localStorage.getItem("theme") === "dark" || 
+                (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+                document.documentElement.classList.add("dark");
+                if (penColor === "#0f172a") penColor = "#f1f5f9"; 
+            } else {
+                document.documentElement.classList.remove("dark");
+            }
+            updateActivePaletteRing();
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+            
+            if (isDark && penColor === "#0f172a") {
+                penColor = "#f1f5f9";
+            } else if (!isDark && penColor === "#f1f5f9") {
+                penColor = "#0f172a";
+            }
+            
+            updateActivePaletteRing();
+            updatePenStyle();
+            showToast(isDark ? "다크 모드가 활성화되었습니다." : "라이트 모드가 활성화되었습니다.");
+        }
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open("TabPlannerDatabase", 4);
+                
+                request.onblocked = function() {
+                    console.warn("데이터베이스 오픈이 다른 탭에 의해 블록되었습니다.");
+                };
+
+                request.onupgradeneeded = function(e) {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains("plannerStore")) {
+                        database.createObjectStore("plannerStore", { keyPath: "date" });
+                    }
+                };
+
+                request.onsuccess = function(e) {
+                    db = e.target.result;
+                    resolve();
+                };
+
+                request.onerror = function(e) {
+                    showToast("데이터베이스 연결에 실패했습니다.");
+                    reject();
+                };
+            });
+        }
+
+        function parseDateSafe(dateStr) {
+            if (!dateStr) return new Date();
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return new Date();
+            return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+
+        // --- 4. 공통 모달 및 토스트 유틸리티 ---
+        function showConfirmModal(desc, callback) {
+            const modal = document.getElementById("confirmModal");
+            document.getElementById("confirmModalDesc").innerText = desc;
+            modal.classList.remove("hidden");
+            confirmModalCallback = callback;
+        }
+
+        function closeConfirmModal(result) {
+            document.getElementById("confirmModal").classList.add("hidden");
+            if (result && confirmModalCallback) {
+                confirmModalCallback();
+            }
+            confirmModalCallback = null;
+        }
+
+        document.getElementById("confirmModalOkBtn").onclick = () => closeConfirmModal(true);
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toastMessage");
+            const toastText = document.getElementById("toastText");
+            toastText.innerText = message;
+            
+            toast.classList.remove("translate-y-20", "opacity-0", "pointer-events-none");
+            toast.classList.add("translate-y-0", "opacity-100");
+
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0", "pointer-events-none");
+                toast.classList.remove("translate-y-0", "opacity-100");
+            }, 3000);
+        }
+
+        function checkFirstVisit() {
+            if (!localStorage.getItem("tabPlannerFirstVisit_v45")) {
+                document.getElementById("guideModal").classList.remove("hidden");
+            }
+        }
+
+        function closeGuide() {
+            localStorage.setItem("tabPlannerFirstVisit_v45", "true");
+            document.getElementById("guideModal").classList.add("hidden");
+        }
+
+        // --- 5. 달력 렌더러 ---
+        function renderCalendar() {
+            const grid = document.getElementById("calendarGrid");
+            grid.innerHTML = "";
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            document.getElementById("currentYearMonth").innerText = `${year}년 ${String(month + 1).padStart(2, '0')}월`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const prevLastDate = new Date(year, month, 0).getDate();
+
+            // 1. 이전 달 날짜 채우기
+            for (let i = firstDay; i > 0; i--) {
+                const dayNum = prevLastDate - i + 1;
+                const prevMonthDate = new Date(year, month - 1, dayNum);
+                const dateStr = formatDate(prevMonthDate);
+                grid.appendChild(createDayCell(dayNum, dateStr, false, false));
+            }
+
+            fetchMonthSummary(year, month).then(summaries => {
+                // 2. 이번 달 날짜 채우기
+                for (let i = 1; i <= lastDate; i++) {
+                    const currentLoopDate = new Date(year, month, i);
+                    const dateStr = formatDate(currentLoopDate);
+                    const isToday = formatDate(new Date()) === dateStr;
+                    const isSelected = selectedDateStr === dateStr;
+                    
+                    const daySummary = summaries[dateStr] || { hasTodo: 0, hasMeeting: false, hasNote: false, hasCanvas: false, tagColor: null, mood: "", habitRatio: 0, hasWork: false };
+
+                    grid.appendChild(createDayCell(i, dateStr, true, isToday, isSelected, daySummary));
+                }
+
+                // 3. 다음 달 날짜 채우기
+                const totalCells = grid.children.length;
+                const remainingCells = 42 - totalCells; 
+                for (let i = 1; i <= remainingCells; i++) {
+                    const nextMonthDate = new Date(year, month + 1, i);
+                    const dateStr = formatDate(nextMonthDate);
+                    grid.appendChild(createDayCell(i, dateStr, false, false));
+                }
+            });
+        }
+
+        function createDayCell(dayNum, dateStr, isCurrentMonth, isToday, isSelected, summary = null) {
+            const cell = document.createElement("button");
+            cell.type = "button";
+            
+            let tagBorderClass = "border-slate-100 dark:border-slate-800";
+            if (isCurrentMonth && summary && summary.tagColor) {
+                switch(summary.tagColor) {
+                    case 'red': tagBorderClass = "border-t-[4px] border-rose-500 border-x-slate-100 border-b-slate-100 dark:border-x-slate-800 dark:border-b-slate-800"; break;
+                    case 'yellow': tagBorderClass = "border-t-[4px] border-amber-400 border-x-slate-100 border-b-slate-100 dark:border-x-slate-800 dark:border-b-slate-800"; break;
+                    case 'green': tagBorderClass = "border-t-[4px] border-emerald-500 border-x-slate-100 border-b-slate-100 dark:border-x-slate-800 dark:border-b-slate-800"; break;
+                    case 'blue': tagBorderClass = "border-t-[4px] border-blue-500 border-x-slate-100 border-b-slate-100 dark:border-x-slate-800 dark:border-b-slate-800"; break;
+                    case 'purple': tagBorderClass = "border-t-[4px] border-purple-500 border-x-slate-100 border-b-slate-100 dark:border-x-slate-800 dark:border-b-slate-800"; break;
+                }
+            }
+
+            // min-h-[60px] 제거 및 h-full 설정으로 화면 높이에 정비례 하도록 최적화
+            cell.className = `h-full p-1 sm:p-1.5 rounded-xl flex flex-col justify-between items-start transition-all relative border ${tagBorderClass} ${
+                isCurrentMonth ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20" : "bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 pointer-events-none"
+            } ${
+                isSelected ? "ring-2 ring-indigo-600 dark:ring-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20" : ""
+            }`;
+
+            const dateObj = parseDateSafe(dateStr);
+            const dayOfWeek = dateObj.getDay();
+            let numColorClass = "text-slate-800 dark:text-slate-200";
+            if (!isCurrentMonth) {
+                numColorClass = "text-slate-300 dark:text-slate-700";
+            } else if (dayOfWeek === 0) {
+                numColorClass = "text-rose-500 font-semibold";
+            } else if (dayOfWeek === 6) {
+                numColorClass = "text-indigo-500 dark:text-indigo-400 font-semibold";
+            }
+
+            let todayBadge = "";
+            if (isToday) {
+                todayBadge = `<span class="absolute top-1 right-1 px-1 py-0.5 text-[8px] font-bold text-white bg-indigo-600 rounded-md">오늘</span>`;
+            }
+
+            let moodEmoji = "";
+            if (isCurrentMonth && summary && summary.mood) {
+                switch(summary.mood) {
+                    case 'excellent': moodEmoji = "😄"; break;
+                    case 'good': moodEmoji = "🙂"; break;
+                    case 'neutral': moodEmoji = "😐"; break;
+                    case 'bad': moodEmoji = "🙁"; break;
+                    case 'terrible': moodEmoji = "😢"; break;
+                }
+            }
+
+            let indicatorHTML = "";
+            if (isCurrentMonth && summary) {
+                indicatorHTML = `<div class="flex flex-wrap gap-0.5 mt-auto pt-1 w-full">`;
+                if (summary.hasTodo > 0) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-sky-500 rounded-full" title="할 일"></span>`;
+                }
+                if (summary.hasWork) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-blue-500 rounded-full" title="업무일지"></span>`;
+                }
+                if (summary.hasMeeting) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="회의록"></span>`;
+                }
+                if (summary.hasNote) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-indigo-500 rounded-full" title="메모"></span>`;
+                }
+                if (summary.hasCanvas) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-purple-500 rounded-full" title="필기"></span>`;
+                }
+                if (summary.habitRatio > 0) {
+                    indicatorHTML += `<span class="w-1.5 h-1.5 bg-amber-500 rounded-full" title="루틴실천"></span>`;
+                }
+                indicatorHTML += `</div>`;
+            }
+
+            cell.innerHTML = `
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs font-bold ${numColorClass}">${dayNum}</span>
+                        <span class="text-xs leading-none">${moodEmoji}</span>
+                    </div>
+                    ${todayBadge}
+                </div>
+                ${indicatorHTML}
+            `;
+
+            if (isCurrentMonth) {
+                cell.onclick = () => selectDate(dateStr);
+            }
+
+            return cell;
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            const parsedDate = parseDateSafe(dateStr);
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById("selectedDateLabel").innerText = parsedDate.toLocaleDateString('ko-KR', options);
+
+            renderCalendar();
+            loadSelectedDateData();
+
+            // 모바일 및 세로 모드 상태에서 날짜 클릭 시 자동으로 작업대로 전환되게 조치 (사용성 극대화)
+            if (window.innerWidth < 1024) {
+                togglePortraitView('workspace');
+            }
+        }
+
+        function prevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        // --- 6. IndexedDB 데이터 교환 컨트롤러 ---
+        function getPlannerData(date) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(null);
+                try {
+                    const transaction = db.transaction(["plannerStore"], "readonly");
+                    const store = transaction.objectStore("plannerStore");
+                    const request = store.get(date);
+                    request.onsuccess = function(e) {
+                        resolve(e.target.result || null);
+                    };
+                    request.onerror = () => resolve(null);
+                } catch (e) {
+                    console.error("데이터 읽기 오류:", e);
+                    resolve(null);
+                }
+            });
+        }
+
+        function savePlannerData(date, updateObj) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(false);
+                try {
+                    const transaction = db.transaction(["plannerStore"], "readwrite");
+                    const store = transaction.objectStore("plannerStore");
+                    const getRequest = store.get(date);
+
+                    getRequest.onsuccess = function(e) {
+                        let data = e.target.result;
+                        if (!data) {
+                            data = {
+                                date: date,
+                                todos: [],
+                                meeting: { title: "", attendees: "", decisions: "", notes: "" },
+                                note: "",
+                                canvasImage: null,
+                                tagColor: null,
+                                mood: "",
+                                diary: "",
+                                habitChecks: {},
+                                work: { status: "ready", summary: "", pending: "", issues: "", timeline: {} }
+                            };
+                        }
+                        
+                        Object.assign(data, updateObj);
+                        
+                        const putRequest = store.put(data);
+                        putRequest.onsuccess = () => {
+                            resolve(true);
+                            renderCalendar();
+                            updateStats(data);
+                        };
+                    };
+                    getRequest.onerror = () => resolve(false);
+                } catch (e) {
+                    console.error("데이터 쓰기 오류:", e);
+                    resolve(false);
+                }
+            });
+        }
+
+        function fetchMonthSummary(year, month) {
+            return new Promise((resolve) => {
+                if (!db) return resolve({});
+                try {
+                    const transaction = db.transaction(["plannerStore"], "readonly");
+                    const store = transaction.objectStore("plannerStore");
+                    const summaries = {};
+
+                    const startRange = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                    const endRange = `${year}-${String(month + 1).padStart(2, '0')}-31`; 
+                    
+                    const range = IDBKeyRange.bound(startRange, endRange);
+                    const request = store.openCursor(range);
+
+                    request.onsuccess = function(e) {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            const val = cursor.value;
+                            
+                            let checkedCount = 0;
+                            if (val.habitChecks) {
+                                checkedCount = Object.values(val.habitChecks).filter(Boolean).length;
+                            }
+
+                            let hasWorkLog = false;
+                            if (val.work && (val.work.summary || Object.values(val.work.timeline || {}).some(t => t))) {
+                                hasWorkLog = true;
+                            }
+
+                            summaries[val.date] = {
+                                hasTodo: val.todos ? val.todos.length : 0,
+                                hasMeeting: (val.meeting && val.meeting.title) ? true : false,
+                                hasNote: val.note ? true : false,
+                                hasCanvas: val.canvasImage ? true : false,
+                                tagColor: val.tagColor || null,
+                                mood: val.mood || "",
+                                habitRatio: checkedCount,
+                                hasWork: hasWorkLog
+                            };
+                            cursor.continue();
+                        } else {
+                            resolve(summaries);
+                        }
+                    };
+                    request.onerror = () => resolve({});
+                } catch (e) {
+                    console.error("서머리 로딩 실패:", e);
+                    resolve({});
+                }
+            });
+        }
+
+        function loadSelectedDateData() {
+            getPlannerData(selectedDateStr).then(data => {
+                updateTagStatus(data ? data.tagColor : null);
+
+                stopSpeechRecognition();
+                document.getElementById("applyTodosBtn").classList.add("hidden");
+                document.getElementById("aiResponseContainer").innerHTML = `
+                    <div class="text-center py-12 text-slate-400 dark:text-slate-500">
+                        <i data-lucide="message-square-dashed" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                        <p>왼쪽 패널에서 분석 목적을 고른 뒤 스마트 분석기를 실행해 주세요.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+
+                if (data) {
+                    renderTodoList(data.todos || []);
+                    
+                    const meeting = data.meeting || { title: "", attendees: "", decisions: "", notes: "" };
+                    document.getElementById("meetingTitle").value = meeting.title || "";
+                    document.getElementById("meetingAttendees").value = meeting.attendees || "";
+                    document.getElementById("meetingDecisions").value = meeting.decisions || "";
+                    document.getElementById("meetingNotes").value = meeting.notes || "";
+
+                    document.getElementById("noteContent").value = data.note || "";
+
+                    renderHabitList(data.habitChecks || {});
+
+                    selectMoodButton(data.mood || "");
+                    document.getElementById("diaryContent").value = data.diary || "";
+
+                    const work = data.work || { status: "ready", summary: "", pending: "", issues: "", timeline: {} };
+                    document.getElementById("workStatus").value = work.status || "ready";
+                    document.getElementById("workSummary").value = work.summary || "";
+                    document.getElementById("workPending").value = work.pending || "";
+                    document.getElementById("workIssues").value = work.issues || "";
+                    
+                    const timeline = work.timeline || {};
+                    const hours = ["09", "10", "11", "12", "14", "15", "16", "17", "18"];
+                    hours.forEach(h => {
+                        const inputEl = document.getElementById(`time-${h}`);
+                        if (inputEl) {
+                            inputEl.value = timeline[h] || "";
+                        }
+                    });
+
+                    loadCanvasImage(data.canvasImage);
+                    updateStats(data);
+                } else {
+                    renderTodoList([]);
+                    document.getElementById("meetingTitle").value = "";
+                    document.getElementById("meetingAttendees").value = "";
+                    document.getElementById("meetingDecisions").value = "";
+                    document.getElementById("meetingNotes").value = "";
+                    document.getElementById("noteContent").value = "";
+                    
+                    renderHabitList({});
+                    selectMoodButton("");
+                    document.getElementById("diaryContent").value = "";
+
+                    document.getElementById("workStatus").value = "ready";
+                    document.getElementById("workSummary").value = "";
+                    document.getElementById("workPending").value = "";
+                    document.getElementById("workIssues").value = "";
+                    const hours = ["09", "10", "11", "12", "14", "15", "16", "17", "18"];
+                    hours.forEach(h => {
+                        const inputEl = document.getElementById(`time-${h}`);
+                        if (inputEl) inputEl.value = "";
+                    });
+
+                    loadCanvasImage(null);
+                    updateStats(null);
+                }
+            });
+        }
+
+        function setDayTagColor(color) {
+            savePlannerData(selectedDateStr, { tagColor: color }).then(() => {
+                updateTagStatus(color);
+                renderCalendar();
+                showToast("오늘의 대표 일정 태그가 변경되었습니다.");
+            });
+        }
+
+        function updateTagStatus(color) {
+            const labelEl = document.getElementById("currentTagName");
+            if (!color) {
+                labelEl.innerText = "태그 없음";
+                labelEl.className = "text-xs text-slate-400 dark:text-slate-500 ml-auto font-semibold";
+            } else {
+                labelEl.className = "text-xs ml-auto font-bold uppercase";
+                switch(color) {
+                    case 'red': labelEl.innerText = "긴급 / 중요"; labelEl.className = "text-xs ml-auto font-bold text-rose-500"; break;
+                    case 'yellow': labelEl.innerText = "아이디어"; labelEl.className = "text-xs ml-auto font-bold text-amber-500"; break;
+                    case 'green': labelEl.innerText = "개인 일정"; labelEl.className = "text-xs ml-auto font-bold text-emerald-500"; break;
+                    case 'blue': labelEl.innerText = "회사 미팅"; labelEl.className = "text-xs ml-auto font-bold text-blue-500"; break;
+                    case 'purple': labelEl.innerText = "공부/공식일정"; labelEl.className = "text-xs ml-auto font-bold text-purple-500"; break;
+                }
+            }
+        }
+
+        function updateStats(data) {
+            const statTodo = document.getElementById("statTodo");
+            const statHabit = document.getElementById("statHabit");
+            const statMood = document.getElementById("statMood");
+
+            if (!data) {
+                statTodo.innerText = "0/0";
+                statHabit.innerText = "0%";
+                statMood.innerText = "미기록";
+                return;
+            }
+
+            const todos = data.todos || [];
+            const completed = todos.filter(t => t.done).length;
+            statTodo.innerText = `${completed}/${todos.length}`;
+
+            const checks = data.habitChecks || {};
+            const totalHabits = globalHabits.length;
+            if (totalHabits > 0) {
+                const checkedCount = globalHabits.filter(h => checks[h]).length;
+                const ratio = Math.round((checkedCount / totalHabits) * 100);
+                statHabit.innerText = `${ratio}%`;
+            } else {
+                statHabit.innerText = "0%";
+            }
+
+            if (data.mood) {
+                switch(data.mood) {
+                    case 'excellent': statMood.innerText = "최고 😄"; break;
+                    case 'good': statMood.innerText = "좋음 🙂"; break;
+                    case 'neutral': statMood.innerText = "보통 😐"; break;
+                    case 'bad': statMood.innerText = "우울 🙁"; break;
+                    case 'terrible': statMood.innerText = "지침 😢"; break;
+                }
+            } else {
+                statMood.innerText = "미기록";
+            }
+        }
+
+        // --- 7. 투두 리스트 핸들러 ---
+        function renderTodoList(todos) {
+            const list = document.getElementById("todoList");
+            const emptyState = document.getElementById("todoEmptyState");
+            const progress = document.getElementById("todoProgress");
+            
+            list.innerHTML = "";
+            
+            if (todos.length === 0) {
+                emptyState.classList.remove("hidden");
+                progress.innerText = "0개 완료됨";
+                return;
+            }
+            emptyState.classList.add("hidden");
+
+            const doneCount = todos.filter(t => t.done).length;
+            progress.innerText = `${todos.length}개 중 ${doneCount}개 완료`;
+
+            todos.forEach((todo, idx) => {
+                const li = document.createElement("li");
+                li.className = "py-3 flex items-center justify-between gap-3 group";
+                li.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleTodo(${idx})" class="w-5 h-5 rounded border ${todo.done ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'} flex items-center justify-center transition">
+                            ${todo.done ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+                        </button>
+                        <span class="text-sm ${todo.done ? 'line-through text-slate-400 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'}">${todo.text}</span>
+                    </div>
+                    <button onclick="deleteTodo(${idx})" class="p-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition text-rose-500 font-medium">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+            lucide.createIcons();
+        }
+
+        function addTodo() {
+            const input = document.getElementById("todoInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            getPlannerData(selectedDateStr).then(data => {
+                const todos = data ? (data.todos || []) : [];
+                todos.push({ text: text, done: false });
+                savePlannerData(selectedDateStr, { todos }).then(() => {
+                    input.value = "";
+                    loadSelectedDateData();
+                });
+            });
+        }
+
+        function toggleTodo(idx) {
+            getPlannerData(selectedDateStr).then(data => {
+                if (!data) return;
+                const todos = data.todos || [];
+                if (todos[idx]) {
+                    todos[idx].done = !todos[idx].done;
+                    savePlannerData(selectedDateStr, { todos }).then(() => {
+                        loadSelectedDateData();
+                    });
+                }
+            });
+        }
+
+        function deleteTodo(idx) {
+            getPlannerData(selectedDateStr).then(data => {
+                if (!data) return;
+                const todos = data.todos || [];
+                todos.splice(idx, 1);
+                savePlannerData(selectedDateStr, { todos }).then(() => {
+                    loadSelectedDateData();
+                    showToast("할 일이 삭제되었습니다.");
+                });
+            });
+        }
+
+        // --- 8. 금일 작업사항 핸들러 ---
+        function saveWorkLogData(showToastAlert = false) {
+            const status = document.getElementById("workStatus").value;
+            const summary = document.getElementById("workSummary").value;
+            const pending = document.getElementById("workPending").value;
+            const issues = document.getElementById("workIssues").value;
+
+            const timeline = {};
+            const hours = ["09", "10", "11", "12", "14", "15", "16", "17", "18"];
+            hours.forEach(h => {
+                const el = document.getElementById(`time-${h}`);
+                if (el) timeline[h] = el.value;
+            });
+
+            savePlannerData(selectedDateStr, { work: { status, summary, pending, issues, timeline } }).then(() => {
+                if (showToastAlert) showToast("금일 작업 사항이 데이터베이스에 반영되었습니다.");
+            });
+        }
+
+        function debounceSaveWorkLog() {
+            clearTimeout(workLogSaveTimeout);
+            workLogSaveTimeout = setTimeout(() => {
+                saveWorkLogData(false);
+            }, 1000);
+        }
+
+        // --- 9. 습관 트래커 핸들러 ---
+        function renderHabitList(checks) {
+            const list = document.getElementById("habitList");
+            const emptyState = document.getElementById("habitEmptyState");
+            
+            list.innerHTML = "";
+            if (globalHabits.length === 0) {
+                emptyState.classList.remove("hidden");
+                document.getElementById("habitProgressPercentage").innerText = "오늘 진행률: 0%";
+                document.getElementById("habitProgressBar").style.width = "0%";
+                return;
+            }
+            emptyState.classList.add("hidden");
+
+            let checkedCount = 0;
+            globalHabits.forEach((habit, idx) => {
+                const isChecked = !!checks[habit];
+                if (isChecked) checkedCount++;
+
+                const li = document.createElement("li");
+                li.className = "py-3.5 flex items-center justify-between gap-3 group";
+                li.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleHabit('${habit}')" class="w-5.5 h-5.5 rounded-full border ${isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-700'} flex items-center justify-center transition">
+                            ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+                        </button>
+                        <span class="text-sm font-semibold ${isChecked ? 'text-slate-400 dark:text-slate-600 line-through' : 'text-slate-700 dark:text-slate-200'}">${habit}</span>
+                    </div>
+                    <button onclick="deleteGlobalHabit(${idx})" class="p-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 rounded transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+
+            const ratio = Math.round((checkedCount / globalHabits.length) * 100) || 0;
+            document.getElementById("habitProgressPercentage").innerText = `오늘 진행률: ${ratio}%`;
+            document.getElementById("habitProgressBar").style.width = `${ratio}%`;
+            lucide.createIcons();
+        }
+
+        function addGlobalHabit() {
+            const input = document.getElementById("habitInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (globalHabits.includes(text)) {
+                showToast("이미 동일한 습관 루틴이 등록되어 있습니다.");
+                return;
+            }
+
+            globalHabits.push(text);
+            localStorage.setItem("tabPlanner_globalHabits", JSON.stringify(globalHabits));
+            
+            input.value = "";
+            loadSelectedDateData();
+            showToast("새로운 일일 습관이 목록에 정규 바인딩되었습니다.");
+        }
+
+        function toggleHabit(habit) {
+            getPlannerData(selectedDateStr).then(data => {
+                const checks = data ? (data.habitChecks || {}) : {};
+                checks[habit] = !checks[habit];
+                savePlannerData(selectedDateStr, { habitChecks: checks }).then(() => {
+                    loadSelectedDateData();
+                });
+            });
+        }
+
+        function deleteGlobalHabit(idx) {
+            showConfirmModal("해당 루틴을 영구 삭제하시겠습니까?", () => {
+                globalHabits.splice(idx, 1);
+                localStorage.setItem("tabPlanner_globalHabits", JSON.stringify(globalHabits));
+                loadSelectedDateData();
+                showToast("선택된 습관 루틴이 삭제되었습니다.");
+            });
+        }
+
+        // --- 10. 일기 및 기분 핸들러 ---
+        function selectMoodButton(mood) {
+            document.querySelectorAll(".mood-selector-btn").forEach(btn => {
+                btn.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-50/50", "dark:bg-emerald-950/20", "text-emerald-600", "dark:text-emerald-400");
+                btn.classList.add("bg-slate-50", "dark:bg-slate-800", "text-slate-500");
+            });
+            if (mood) {
+                const activeBtn = document.getElementById(`mood-${mood}`);
+                if (activeBtn) {
+                    activeBtn.classList.remove("bg-slate-50", "dark:bg-slate-800", "text-slate-500");
+                    activeBtn.classList.add("ring-2", "ring-emerald-500", "bg-emerald-50/50", "dark:bg-emerald-950/20", "text-emerald-600", "dark:text-emerald-400");
+                }
+            }
+        }
+
+        function saveDiary() {
+            const text = document.getElementById("diaryContent").value;
+            savePlannerData(selectedDateStr, { diary: text }).then(() => {
+                showToast("오늘의 심경 일기가 안전하게 다이어리에 마킹되었습니다.");
+            });
+        }
+
+        // --- 11. 전체 기록 스캔 검색기 ---
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(globalSearch, 300);
+        }
+
+        function globalSearch() {
+            const query = document.getElementById("globalSearchInput").value.trim().toLowerCase();
+            const resultsArea = document.getElementById("searchResultsArea");
+            const resultsList = document.getElementById("searchResultsList");
+            const clearBtn = document.getElementById("clearSearchBtn");
+
+            if (!query) {
+                clearSearch();
+                return;
+            }
+
+            clearBtn.classList.remove("hidden");
+            resultsArea.classList.remove("hidden");
+            resultsList.innerHTML = `<li class="py-2 text-center text-slate-400 text-xs">스캐너 스캔 중...</li>`;
+
+            if (!db) return;
+
+            try {
+                const transaction = db.transaction(["plannerStore"], "readonly");
+                const store = transaction.objectStore("plannerStore");
+                const request = store.openCursor();
+                const matched = [];
+
+                request.onsuccess = function(e) {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        const val = cursor.value;
+                        let matchText = "";
+                        let found = false;
+
+                        if (val.note && val.note.toLowerCase().includes(query)) {
+                            found = true;
+                            matchText = `[메모] ${val.note.substring(0, 25)}`;
+                        } else if (val.diary && val.diary.toLowerCase().includes(query)) {
+                            found = true;
+                            matchText = `[일기] ${val.diary.substring(0, 25)}`;
+                        } else if (val.meeting && (
+                            (val.meeting.title && val.meeting.title.toLowerCase().includes(query)) ||
+                            (val.meeting.notes && val.meeting.notes.toLowerCase().includes(query))
+                        )) {
+                            found = true;
+                            matchText = `[회의록] ${val.meeting.title || "제목없음"}`;
+                        } else if (val.work && (
+                            (val.work.summary && val.work.summary.toLowerCase().includes(query)) ||
+                            (val.work.pending && val.work.pending.toLowerCase().includes(query))
+                        )) {
+                            found = true;
+                            matchText = `[업무일지] ${val.work.summary.substring(0, 25)}`;
+                        }
+
+                        if (found) {
+                            matched.push({ date: val.date, text: matchText + "..." });
+                        }
+                        cursor.continue();
+                    } else {
+                        renderSearchResults(matched);
+                    }
+                };
+            } catch (e) {
+                console.error("검색 중 에러: ", e);
+            }
+        }
+
+        function renderSearchResults(matched) {
+            const resultsList = document.getElementById("searchResultsList");
+            resultsList.innerHTML = "";
+            
+            if (matched.length === 0) {
+                resultsList.innerHTML = `<li class="py-2 text-center text-slate-400 text-[11px] font-medium">검색 결과가 발견되지 않았습니다.</li>`;
+                return;
+            }
+            
+            matched.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-2 cursor-pointer transition flex items-center justify-between gap-2";
+                li.onclick = () => {
+                    selectDate(item.date);
+                };
+                li.innerHTML = `
+                    <span class="text-indigo-600 dark:text-indigo-400 font-bold text-[10px] shrink-0">${item.date}</span>
+                    <span class="text-slate-500 dark:text-slate-400 truncate text-[10px] text-right">${item.text}</span>
+                `;
+                resultsList.appendChild(li);
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById("globalSearchInput").value = "";
+            document.getElementById("searchResultsArea").classList.add("hidden");
+            document.getElementById("clearSearchBtn").classList.add("hidden");
+        }
+
+        // --- 12. 월간 종합 통계 대시보드 ---
+        function renderDashboard() {
+            if (!db) return;
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const startRange = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            const endRange = `${year}-${String(month + 1).padStart(2, '0')}-31`; 
+
+            try {
+                const transaction = db.transaction(["plannerStore"], "readonly");
+                const store = transaction.objectStore("plannerStore");
+                const range = IDBKeyRange.bound(startRange, endRange);
+                const request = store.openCursor(range);
+
+                let totalTodos = 0;
+                let doneTodos = 0;
+                
+                let moodCounts = { excellent: 0, good: 0, neutral: 0, bad: 0, terrible: 0 };
+                let moodTotal = 0;
+
+                let habitTotalExpected = 0;
+                let habitDoneCount = 0;
+                let habitRates = {}; 
+                globalHabits.forEach(h => { habitRates[h] = { done: 0, total: 0 }; });
+
+                request.onsuccess = function(e) {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        const val = cursor.value;
+
+                        if (val.todos) {
+                            totalTodos += val.todos.length;
+                            doneTodos += val.todos.filter(t => t.done).length;
+                        }
+
+                        if (val.mood && moodCounts.hasOwnProperty(val.mood)) {
+                            moodCounts[val.mood]++;
+                            moodTotal++;
+                        }
+
+                        if (globalHabits.length > 0) {
+                            globalHabits.forEach(h => {
+                                habitRates[h].total++;
+                                if (val.habitChecks && val.habitChecks[h]) {
+                                    habitRates[h].done++;
+                                    habitDoneCount++;
+                                }
+                                habitTotalExpected++;
+                            });
+                        }
+
+                        cursor.continue();
+                    } else {
+                        document.getElementById("dashTodoTotal").innerText = `${totalTodos}개`;
+                        document.getElementById("dashTodoDone").innerText = `${doneTodos}개`;
+                        const todoRate = totalTodos > 0 ? Math.round((doneTodos / totalTodos) * 100) : 0;
+                        document.getElementById("dashTodoRate").innerText = `${todoRate}%`;
+                        document.getElementById("dashTodoBar").style.width = `${todoRate}%`;
+
+                        document.getElementById("dashMoodTotal").innerText = `${moodTotal}회`;
+                        document.getElementById("dashMoodExcellentCnt").innerText = moodCounts.excellent;
+                        document.getElementById("dashMoodGoodCnt").innerText = moodCounts.good;
+                        document.getElementById("dashMoodNeutralCnt").innerText = moodCounts.neutral;
+                        document.getElementById("dashMoodBadCnt").innerText = moodCounts.bad;
+                        document.getElementById("dashMoodTerribleCnt").innerText = moodCounts.terrible;
+
+                        if (moodTotal > 0) {
+                            const excPct = Math.round((moodCounts.excellent / moodTotal) * 100);
+                            const gdPct = Math.round((moodCounts.good / moodTotal) * 100);
+                            const neuPct = Math.round((moodCounts.neutral / moodTotal) * 100);
+                            const bdPct = Math.round((moodCounts.bad / moodTotal) * 100);
+                            const trbPct = Math.round((moodCounts.terrible / moodTotal) * 100);
+
+                            document.getElementById("dashMoodExcellentArc").setAttribute("stroke-dasharray", `${excPct} 100`);
+                            document.getElementById("dashMoodGoodArc").setAttribute("stroke-dasharray", `${gdPct} 100`);
+                            document.getElementById("dashMoodGoodArc").setAttribute("stroke-dashoffset", `-${excPct}`);
+                            document.getElementById("dashMoodNeutralArc").setAttribute("stroke-dasharray", `${neuPct} 100`);
+                            document.getElementById("dashMoodNeutralArc").setAttribute("stroke-dashoffset", `-${excPct + gdPct}`);
+                            document.getElementById("dashMoodBadArc").setAttribute("stroke-dasharray", `${bdPct} 100`);
+                            document.getElementById("dashMoodBadArc").setAttribute("stroke-dashoffset", `-${excPct + gdPct + neuPct}`);
+                            document.getElementById("dashMoodTerribleArc").setAttribute("stroke-dasharray", `${trbPct} 100`);
+                            document.getElementById("dashMoodTerribleArc").setAttribute("stroke-dashoffset", `-${excPct + gdPct + neuPct + bdPct}`);
+                        } else {
+                            document.getElementById("dashMoodExcellentArc").setAttribute("stroke-dasharray", "0 100");
+                            document.getElementById("dashMoodGoodArc").setAttribute("stroke-dasharray", "0 100");
+                            document.getElementById("dashMoodNeutralArc").setAttribute("stroke-dasharray", "0 100");
+                            document.getElementById("dashMoodBadArc").setAttribute("stroke-dasharray", "0 100");
+                            document.getElementById("dashMoodTerribleArc").setAttribute("stroke-dasharray", "0 100");
+                        }
+
+                        const habitRate = habitTotalExpected > 0 ? Math.round((habitDoneCount / habitTotalExpected) * 100) : 0;
+                        document.getElementById("dashHabitRate").innerText = `${habitRate}%`;
+
+                        const listContainer = document.getElementById("dashHabitList");
+                        listContainer.innerHTML = "";
+                        if (globalHabits.length === 0) {
+                            listContainer.innerHTML = `<div class="text-slate-400 text-center py-2 text-xs font-semibold">아직 루틴을 등록하지 않았습니다.</div>`;
+                        } else {
+                            globalHabits.forEach(h => {
+                                const hData = habitRates[h];
+                                const rate = hData.total > 0 ? Math.round((hData.done / hData.total) * 100) : 0;
+                                const barDiv = document.createElement("div");
+                                barDiv.className = "space-y-1";
+                                barDiv.innerHTML = `
+                                    <div class="flex justify-between text-[10px]">
+                                        <span class="truncate max-w-[140px] font-semibold text-slate-600 dark:text-slate-300">${h}</span>
+                                        <span class="font-bold text-slate-500">${rate}% (${hData.done}/${hData.total}일)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-amber-500 h-full" style="width: ${rate}%"></div>
+                                    </div>
+                                `;
+                                listContainer.appendChild(barDiv);
+                            });
+                        }
+                    }
+                };
+            } catch (e) {
+                console.error("대시보드 통계 계산 오류: ", e);
+            }
+        }
+
+        // --- 13. 집중 타이머 & 빗소리 노이즈 발생 엔진 ---
+        function toggleFocusWidgetExpand() {
+            const widget = document.getElementById("focusWidget");
+            const arrow = document.getElementById("focusWidgetArrow");
+            if (isWidgetExpanded) {
+                widget.classList.remove("max-h-[300px]");
+                widget.classList.add("max-h-[50px]");
+                arrow.classList.remove("rotate-180");
+            } else {
+                widget.classList.remove("max-h-[50px]");
+                widget.classList.add("max-h-[300px]");
+                arrow.classList.add("rotate-180");
+            }
+            isWidgetExpanded = !isWidgetExpanded;
+        }
+
+        function adjustFocusTime(amountSec) {
+            if (isPomodoroRunning) return;
+            focusSecondsLeft = Math.max(60, focusSecondsLeft + amountSec);
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const mins = String(Math.floor(focusSecondsLeft / 60)).padStart(2, '0');
+            const secs = String(focusSecondsLeft % 60).padStart(2, '0');
+            const timeStr = `${mins}:${secs}`;
+            document.getElementById("focusTimeDisplay").innerText = timeStr;
+            document.getElementById("focusTimeMain").innerText = timeStr;
+        }
+
+        function togglePomodoroTimer() {
+            const pulse = document.getElementById("focusPulse");
+            const startBtn = document.getElementById("focusStartBtn");
+            const title = document.getElementById("focusWidgetTitle");
+
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroTimer);
+                isPomodoroRunning = false;
+                pulse.classList.remove("bg-rose-500", "animate-ping");
+                pulse.classList.add("bg-slate-300");
+                startBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
+                title.innerText = "집중 정지됨";
+            } else {
+                isPomodoroRunning = true;
+                pulse.classList.remove("bg-slate-300");
+                pulse.classList.add("bg-rose-500", "animate-ping");
+                startBtn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> 일시정지`;
+                title.innerText = "🎯 고도 집중 모드";
+                
+                pomodoroTimer = setInterval(() => {
+                    if (focusSecondsLeft > 0) {
+                        focusSecondsLeft--;
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(pomodoroTimer);
+                        isPomodoroRunning = false;
+                        pulse.classList.remove("bg-rose-500", "animate-ping");
+                        pulse.classList.add("bg-emerald-500");
+                        startBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
+                        title.innerText = "집중 완료!";
+                        showToast("집중 세션 완료! 시원하게 환기 한 번 하세요.");
+                        playBellSound();
+                    }
+                }, 1000);
+            }
+            lucide.createIcons();
+        }
+
+        function resetPomodoroTimer() {
+            clearInterval(pomodoroTimer);
+            isPomodoroRunning = false;
+            focusSecondsLeft = 1500;
+            updateTimerDisplay();
+            
+            const pulse = document.getElementById("focusPulse");
+            pulse.className = "w-2.5 h-2.5 bg-slate-300 rounded-full";
+            document.getElementById("focusStartBtn").innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> 타이머 시작`;
+            document.getElementById("focusWidgetTitle").innerText = "집중 타이머 & 백색 소음";
+            lucide.createIcons();
+        }
+
+        function toggleWhiteNoise() {
+            const btn = document.getElementById("noiseToggleBtn");
+            if (isWhiteNoisePlaying) {
+                stopRainNoise();
+                btn.innerText = "빗소리 재생";
+                btn.className = "text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:underline";
+            } else {
+                startRainNoise();
+                btn.innerText = "소음기 끄기";
+                btn.className = "text-[10px] font-black text-rose-500 hover:underline";
+            }
+        }
+
+        function startRainNoise() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const bufferSize = 2 * audioCtx.sampleRate;
+                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+
+                let lastOut = 0.0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    output[i] = (lastOut * 0.985 + white * 0.015);
+                    lastOut = output[i];
+                    output[i] *= 4.0; 
+                }
+
+                noiseNode = audioCtx.createBufferSource();
+                noiseNode.buffer = noiseBuffer;
+                noiseNode.loop = true;
+
+                filterNode = audioCtx.createBiquadFilter();
+                filterNode.type = 'lowpass';
+                filterNode.frequency.value = 450; 
+
+                gainNode = audioCtx.createGain();
+                const volVal = document.getElementById("noiseVolume").value / 100;
+                gainNode.gain.setValueAtTime(volVal, audioCtx.currentTime);
+
+                noiseNode.connect(filterNode);
+                filterNode.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                noiseNode.start();
+                isWhiteNoisePlaying = true;
+            } catch(e) {
+                console.error("Audio Context 구동 에러: ", e);
+            }
+        }
+
+        function stopRainNoise() {
+            if (noiseNode) {
+                try {
+                    noiseNode.stop();
+                    noiseNode.disconnect();
+                } catch(e){}
+                noiseNode = null;
+            }
+            isWhiteNoisePlaying = false;
+        }
+
+        function changeNoiseVolume(val) {
+            if (gainNode && audioCtx) {
+                gainNode.gain.setValueAtTime(val / 100, audioCtx.currentTime);
+            }
+        }
+
+        function playBellSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.8);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.8);
+            } catch(e){}
+        }
+
+        // --- 14. 스마트 AI 비서 분석 엔진 (Gemini 2.5 Flash API 활용) ---
+        function setAiTask(task) {
+            aiTask = task;
+            
+            const summarizeBtn = document.getElementById("ai-task-summarize");
+            const feedbackBtn = document.getElementById("ai-task-feedback");
+
+            if (task === 'summarize') {
+                summarizeBtn.className = "w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-2";
+                feedbackBtn.className = "w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2";
+            } else {
+                feedbackBtn.className = "w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-all flex items-center gap-2";
+                summarizeBtn.className = "w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2";
+            }
+        }
+
+        async function runGeminiAi() {
+            const source = document.getElementById("aiSourceSelect").value;
+            const container = document.getElementById("aiResponseContainer");
+            const loader = document.getElementById("aiLoader");
+            const applyBtn = document.getElementById("applyTodosBtn");
+
+            let sourceText = "";
+            const meetingTitle = document.getElementById("meetingTitle").value;
+            const meetingDecisions = document.getElementById("meetingDecisions").value;
+            const meetingNotes = document.getElementById("meetingNotes").value;
+            const textNote = document.getElementById("noteContent").value;
+            
+            const workStatus = document.getElementById("workStatus").value;
+            const workSummary = document.getElementById("workSummary").value;
+            const workPending = document.getElementById("workPending").value;
+            const workIssues = document.getElementById("workIssues").value;
+
+            let timelineStr = "";
+            const hours = ["09", "10", "11", "12", "14", "15", "16", "17", "18"];
+            hours.forEach(h => {
+                const val = document.getElementById(`time-${h}`)?.value;
+                if (val) {
+                    timelineStr += `- ${h}시: ${val}\n`;
+                }
+            });
+
+            const diaryContent = document.getElementById("diaryContent").value;
+            let currentMoodText = "미기록";
+            const currentMoodVal = document.querySelector(".mood-selector-btn.ring-2")?.id?.replace("mood-", "");
+            if (currentMoodVal) {
+                switch(currentMoodVal) {
+                    case 'excellent': currentMoodText = "최고 😄"; break;
+                    case 'good': currentMoodText = "좋음 🙂"; break;
+                    case 'neutral': currentMoodText = "보통 😐"; break;
+                    case 'bad': currentMoodText = "우울 🙁"; break;
+                    case 'terrible': currentMoodText = "지침 😢"; break;
+                }
+            }
+
+            if (source === "both" || source === "work") {
+                if (workSummary || timelineStr) {
+                    sourceText += `[금일 작업 일지]:\n- 상태: ${workStatus}\n- 시간 타임라인:\n${timelineStr}- 성과 요약: ${workSummary}\n- 미완료 사항: ${workPending}\n- 이슈: ${workIssues}\n\n`;
+                }
+                if (meetingTitle || meetingNotes) {
+                    sourceText += `[회의명]: ${meetingTitle}\n[회의의결사항]: ${meetingDecisions}\n[회의록본문]: ${meetingNotes}\n\n`;
+                }
+            }
+            if (source === "both" || source === "note") {
+                if (textNote) {
+                    sourceText += `[텍스트 메모 내용]: ${textNote}\n\n`;
+                }
+                if (diaryContent || currentMoodVal) {
+                    sourceText += `[오늘의 감정]: ${currentMoodText}\n[감정 일기]: ${diaryContent}\n\n`;
+                }
+            }
+
+            if (!sourceText.trim()) {
+                showToast("분석할 오늘의 텍스트 기록 데이터가 전혀 발견되지 않았습니다.");
+                return;
+            }
+
+            container.innerHTML = "";
+            loader.classList.remove("hidden");
+            applyBtn.classList.add("hidden");
+            aiExtractedTodosCache = [];
+
+            let systemPrompt = "";
+            let userPrompt = "";
+
+            if (aiTask === "summarize") {
+                systemPrompt = `당신은 최고 수준의 업무 비서이자 분석가입니다. 제공된 기록 본문(업무 일지, 타임라인, 회의록 등)을 바탕으로 핵심 분석 결과를 한글로 생성해야 합니다.
+구조는 반드시 다음 형식을 유지해 주세요:
+
+### 📌 오늘의 요약 브리핑
+(여기에 오늘 있었던 업무적 중요 흐름과 아웃라인 요약을 기술하고, 시간 배분의 적절성을 2-3줄로 평해 줍니다.)
+
+### 🎯 실천 과제 (Action Items)
+- [ ] 할일 내용 1 (예: 이월된 시안 수정본 오후까지 완성하기)
+- [ ] 할일 내용 2
+
+**규칙**:
+1. 실천 과제는 반드시 동사로 끝나는 명확한 형태여야 하며, '- [ ] 내용' 양식을 정확히 준수해 주세요.
+2. 분석 대상에서 실질적으로 다음 스텝으로 추진해야 할 투두를 최대 5개까지 세밀하게 추출하세요.`;
+                userPrompt = `아래 문서를 정독하고 핵심 요약과 실천 과제를 양식에 맞게 분해해 주세요.\n\n${sourceText}`;
+            } else {
+                systemPrompt = `당신은 다정한 심리 상담가이자 마음 치료사입니다. 사용자가 남긴 오늘 하루의 감정 상태와 일기 내용을 정성스레 탐독하고, 감정에 깊이 공감해 준 뒤 다음날을 용기 내어 나아갈 수 있는 따뜻하고 치유적인 위로 코멘트와 작은 리프레시 루틴 추천 등을 친근한 존댓말로 전해 주어야 합니다.`;
+                userPrompt = `오늘 하루 나의 마음 상태와 일기를 건냅니다. 정독하고 편안한 피드백을 적어 주세요.\n\n${sourceText}`;
+            }
+
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            let response = null;
+            let success = false;
+            let delay = 1000;
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        success = true;
+                        break;
+                    }
+                } catch(err) {
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+
+            loader.classList.add("hidden");
+
+            if (!success) {
+                container.innerHTML = `<p class="text-rose-500 font-bold text-center py-8">AI 스마트 어시스턴트 호출에 실패했습니다. API 키 정보가 비어있거나 올바르지 않습니다.</p>`;
+                return;
+            }
+
+            const result = await response.json();
+            const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (aiText) {
+                container.innerHTML = aiText.replace(/\n/g, "<br>").replace(/### (.*?)<br>/g, "<h3 class='text-sm font-bold text-slate-800 dark:text-white mt-4 border-b border-slate-100 dark:border-slate-800 pb-1'>$1</h3>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                document.getElementById("aiTimeLabel").innerText = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + " 완료";
+
+                if (aiTask === "summarize") {
+                    parseExtractedTodos(aiText);
+                    if (aiExtractedTodosCache.length > 0) {
+                        applyBtn.classList.remove("hidden");
+                    }
+                }
+            } else {
+                container.innerHTML = `<p class="text-slate-400 text-center py-8">결과물을 수신하지 못했습니다.</p>`;
+            }
+        }
+
+        function parseExtractedTodos(markdownText) {
+            aiExtractedTodosCache = [];
+            const lines = markdownText.split("\n");
+            lines.forEach(line => {
+                const match = line.match(/^-\s*\[\s*\]\s*(.+)/);
+                if (match && match[1]) {
+                    const cleanTodo = match[1].trim();
+                    if (cleanTodo) {
+                        aiExtractedTodosCache.push(cleanTodo);
+                    }
+                }
+            });
+        }
+
+        function applyExtractedTodos() {
+            if (aiExtractedTodosCache.length === 0) return;
+
+            getPlannerData(selectedDateStr).then(data => {
+                const currentTodos = data ? (data.todos || []) : [];
+                
+                aiExtractedTodosCache.forEach(newText => {
+                    const exist = currentTodos.some(t => t.text === newText);
+                    if (!exist) {
+                        currentTodos.push({ text: newText, done: false });
+                    }
+                });
+
+                savePlannerData(selectedDateStr, { todos: currentTodos }).then(() => {
+                    loadSelectedDateData();
+                    showToast(`성공적으로 ${aiExtractedTodosCache.length}개의 할 일을 오늘의 To-Do 리스트에 통합 등록했습니다.`);
+                    document.getElementById("applyTodosBtn").classList.add("hidden");
+                });
+            });
+        }
+
+        // --- 15. 회의록 수동 핸들러 ---
+        function saveMeetingMinutes() {
+            const title = document.getElementById("meetingTitle").value.trim();
+            const attendees = document.getElementById("meetingAttendees").value.trim();
+            const decisions = document.getElementById("meetingDecisions").value.trim();
+            const notes = document.getElementById("meetingNotes").value.trim();
+
+            savePlannerData(selectedDateStr, { meeting: { title, attendees, decisions, notes } }).then(() => {
+                showToast("회의록이 로컬 임시 보관소에 안전하게 마크되었습니다.");
+            });
+        }
+
+        function printMeetingMinutes() {
+            document.getElementById("printDateLabel").innerText = `작성 날짜: ${selectedDateStr}`;
+            window.print();
+        }
+
+        // --- 16. 텍스트 메모 수동 핸들러 ---
+        function saveNoteData() {
+            const content = document.getElementById("noteContent").value;
+            savePlannerData(selectedDateStr, { note: content }).then(() => {
+                document.getElementById("noteSavedStatus").innerText = "안전하게 저장됨";
+            });
+        }
+
+        function debounceSaveNote() {
+            document.getElementById("noteSavedStatus").innerText = "기록 중...";
+            clearTimeout(noteSaveTimeout);
+            noteSaveTimeout = setTimeout(() => {
+                saveNoteData();
+            }, 1000);
+        }
+
+        // --- 17. 음성 인식 제어 바인더 ---
+        function initSpeechRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (window.SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'ko-KR';
+
+                recognition.onresult = function(e) {
+                    if (!activeSttTargetId) return;
+                    const el = document.getElementById(activeSttTargetId);
+                    
+                    let resultText = "";
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) {
+                            resultText += e.results[i][0].transcript + " ";
+                        }
+                    }
+
+                    if (resultText) {
+                        el.value = el.value.trim() + " " + resultText.trim();
+                        if (activeSttTargetId === "noteContent") {
+                            debounceSaveNote();
+                        }
+                    }
+                };
+
+                recognition.onerror = function(e) {
+                    console.error("음성인식 엔진 오류:", e.error);
+                    stopSpeechRecognition();
+                };
+
+                recognition.onend = function() {
+                    stopSpeechRecognition();
+                };
+            }
+        }
+
+        function toggleSpeechToText(targetTextAreaId) {
+            if (!recognition) {
+                showToast("현재 기기 및 브라우저는 음성 받아쓰기를 지원하지 않습니다.");
+                return;
+            }
+
+            if (activeSttTargetId === targetTextAreaId) {
+                stopSpeechRecognition();
+                showToast("음성 받아쓰기를 종료했습니다.");
+            } else {
+                stopSpeechRecognition();
+                
+                activeSttTargetId = targetTextAreaId;
+                recognition.start();
+
+                const indicator = document.getElementById(`stt-status-${targetTextAreaId}`);
+                if (indicator) indicator.classList.remove("hidden");
+
+                const btn = targetTextAreaId === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
+                if (btn) {
+                    btn.classList.add("bg-rose-500", "text-white");
+                    btn.classList.remove("bg-rose-50", "text-rose-600");
+                    const span = btn.querySelector("span");
+                    if (span) span.innerText = "기록 중지";
+                }
+
+                showToast("말씀하시면 실시간으로 안전하게 기입합니다.");
+            }
+        }
+
+        function stopSpeechRecognition() {
+            if (recognition && activeSttTargetId) {
+                try {
+                    recognition.stop();
+                } catch(e) {}
+                
+                const prevTarget = activeSttTargetId;
+                activeSttTargetId = null;
+
+                const indicator = document.getElementById(`stt-status-${prevTarget}`);
+                if (indicator) indicator.classList.add("hidden");
+
+                const btn = prevTarget === "meetingNotes" ? document.getElementById("stt-meeting-btn") : document.getElementById("stt-note-btn");
+                if (btn) {
+                    btn.classList.remove("bg-rose-500", "text-white");
+                    btn.classList.add("bg-rose-50", "text-rose-600");
+                    const span = btn.querySelector("span");
+                    if (span) span.innerText = "받아쓰기";
+                }
+            }
+        }
+
+        // --- 18. 스마트 펜슬 필기 캔버스 엔진 ---
+        function initCanvas() {
+            canvas = document.getElementById("noteCanvas");
+            ctx = canvas.getContext("2d");
+
+            canvas.addEventListener("mousedown", startDrawing);
+            canvas.addEventListener("mousemove", draw);
+            canvas.addEventListener("mouseup", stopDrawing);
+            canvas.addEventListener("mouseout", stopDrawing);
+
+            canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+            canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+            canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+            
+            handleCanvasResize();
+        }
+
+        function changeCanvasTemplate(template) {
+            currentTemplate = template;
+            canvas.className = "w-full h-full block cursor-crosshair transition-all";
+            
+            if (template !== 'none') {
+                canvas.classList.add(`bg-pattern-${template}`);
+            }
+            showToast(`${template.toUpperCase()} 격자 서식이 캔버스 배경에 안착되었습니다.`);
+        }
+
+        function handleCanvasResize() {
+            if (!canvas) return;
+            const container = canvas.parentElement;
+            
+            if (!container || container.clientWidth === 0 || container.clientHeight === 0) return;
+            
+            const tempImage = canvas.toDataURL();
+            
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            updatePenStyle();
+
+            const img = new Image();
+            img.onload = function() {
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0);
+                ctx.restore();
+            };
+            img.src = tempImage;
+        }
+
+        function adjustZoom(amount) {
+            scale = Math.max(0.5, Math.min(3.0, scale + amount));
+            document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+            redrawCanvasCurrentState();
+        }
+
+        function resetZoomAndPan() {
+            scale = 1.0;
+            panX = 0;
+            panY = 0;
+            document.getElementById("zoomPercent").innerText = "100%";
+            redrawCanvasCurrentState();
+            showToast("캔버스 비율과 위치를 최적화했습니다.");
+        }
+
+        function redrawCanvasCurrentState() {
+            getPlannerData(selectedDateStr).then(data => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (data && data.canvasImage) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.save();
+                        ctx.translate(panX, panY);
+                        ctx.scale(scale, scale);
+                        ctx.drawImage(img, 0, 0);
+                        ctx.restore();
+                    };
+                    img.src = data.canvasImage;
+                }
+            });
+        }
+
+        function toggleStraightLineAssist() {
+            straightLineAssist = !straightLineAssist;
+            const btn = document.getElementById("straightLineBtn");
+            if (straightLineAssist) {
+                btn.classList.add("bg-indigo-600", "text-white");
+                btn.classList.remove("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "직선 보정 On";
+                showToast("직선 그리기 자동 보정 가이드가 켜졌습니다.");
+            } else {
+                btn.classList.remove("bg-indigo-600", "text-white");
+                btn.classList.add("bg-slate-100", "text-slate-500");
+                btn.querySelector("span").innerText = "직선 보정 Off";
+                showToast("직선 그리기 자동 보정 가이드가 꺼졌습니다.");
+            }
+        }
+
+        function updatePenStyle() {
+            if (!ctx) return;
+            
+            if (drawMode === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = "rgba(0,0,0,1)"; 
+                ctx.lineWidth = penWidth * scale; 
+            } else if (drawMode === 'highlighter') {
+                ctx.globalCompositeOperation = 'source-over';
+                
+                const hex = penColor.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                ctx.lineWidth = penWidth * 3.5 * scale; 
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = penWidth * scale;
+            }
+        }
+
+        function setDrawingMode(mode) {
+            drawMode = mode;
+            
+            const modes = ['pen', 'highlighter', 'eraser'];
+            modes.forEach(m => {
+                const btn = document.getElementById(`tool-${m}`);
+                if (m === mode) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm transition";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-800/50";
+                }
+            });
+
+            const palette = document.getElementById("paletteContainer");
+            if (mode === 'eraser') {
+                palette.classList.add("opacity-30", "pointer-events-none");
+            } else {
+                palette.classList.remove("opacity-30", "pointer-events-none");
+            }
+
+            updatePenStyle();
+        }
+
+        function setPenColor(color) {
+            const isDark = document.documentElement.classList.contains("dark");
+            if (isDark && color === '#0f172a') {
+                penColor = '#f1f5f9';
+            } else {
+                penColor = color;
+            }
+            
+            updateActivePaletteRing();
+            updatePenStyle();
+        }
+
+        function updateActivePaletteRing() {
+            document.querySelectorAll(".color-btn").forEach(btn => {
+                btn.classList.remove("ring-2", "ring-indigo-500", "scale-110");
+                const bg = btn.title;
+                if ((bg === '기본 다크' && (penColor === '#0f172a' || penColor === '#f1f5f9')) ||
+                    (bg === '빨간색' && penColor === '#ef4444') ||
+                    (bg === '파란색' && penColor === '#3b82f6') ||
+                    (bg === '초록색' && penColor === '#10b981') ||
+                    (bg === '형광노랑' && penColor === '#eab308')) {
+                    btn.classList.add("ring-2", "ring-indigo-500", "scale-110");
+                }
+            });
+        }
+
+        function updateLineWidth(val) {
+            penWidth = parseInt(val);
+            document.getElementById("lineWidthVal").innerText = `${val}px`;
+            updatePenStyle();
+        }
+
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left - panX) / scale,
+                y: (e.clientY - rect.top - panY) / scale
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const coords = getCanvasCoordinates(e);
+            lastX = coords.x;
+            lastY = coords.y;
+
+            if (straightLineAssist) {
+                strokeStartX = coords.x;
+                strokeStartY = coords.y;
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const coords = getCanvasCoordinates(e);
+
+            updatePenStyle();
+
+            ctx.save();
+            ctx.translate(panX, panY);
+            ctx.scale(scale, scale);
+
+            if (straightLineAssist) {
+                redrawCanvasCurrentState();
+                ctx.beginPath();
+                ctx.strokeStyle = drawMode === 'eraser' ? "rgba(0,0,0,0.5)" : penColor;
+                ctx.lineWidth = penWidth;
+                ctx.moveTo(strokeStartX, strokeStartY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                
+                lastX = coords.x;
+                lastY = coords.y;
+            }
+
+            ctx.restore();
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            
+            if (straightLineAssist && e) {
+                const coords = getCanvasCoordinates(e);
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+                
+                redrawCanvasCurrentState();
+                
+                ctx.beginPath();
+                ctx.moveTo(strokeStartX, strokeStartY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            isDrawing = false;
+        }
+
+        // --- 19. 멀티터치 제스처 제어 ---
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+
+            if (e.touches.length === 1 && !isPanning) {
+                isDrawing = true;
+                const touch = e.touches[0];
+                lastX = (touch.clientX - rect.left - panX) / scale;
+                lastY = (touch.clientY - rect.top - panY) / scale;
+
+                if (straightLineAssist) {
+                    strokeStartX = lastX;
+                    strokeStartY = lastY;
+                }
+            } else if (e.touches.length === 2) {
+                isDrawing = false;
+                isPanning = true;
+
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+
+                startTouchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                lastTouchX = (t1.clientX + t2.clientX) / 2;
+                lastTouchY = (t1.clientY + t2.clientY) / 2;
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+
+            if (isDrawing && e.touches.length === 1) {
+                const touch = e.touches[0];
+                const currentX = (touch.clientX - rect.left - panX) / scale;
+                const currentY = (touch.clientY - rect.top - panY) / scale;
+
+                updatePenStyle();
+
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+
+                if (straightLineAssist) {
+                    redrawCanvasCurrentState();
+                    ctx.beginPath();
+                    ctx.moveTo(strokeStartX, strokeStartY);
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+
+                    lastX = currentX;
+                    lastY = currentY;
+                }
+
+                ctx.restore();
+            } else if (isPanning && e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+
+                const currentDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                const zoomFactor = currentDistance / startTouchDistance;
+                
+                const previousScale = scale;
+                scale = Math.max(0.5, Math.min(3.0, previousScale * zoomFactor));
+                document.getElementById("zoomPercent").innerText = `${Math.round(scale * 100)}%`;
+
+                const currentTouchX = (t1.clientX + t2.clientX) / 2;
+                const currentTouchY = (t1.clientY + t2.clientY) / 2;
+
+                panX += (currentTouchX - lastTouchX);
+                panY += (currentTouchY - lastTouchY);
+
+                startTouchDistance = currentDistance;
+                lastTouchX = currentTouchX;
+                lastTouchY = currentTouchY;
+
+                redrawCanvasCurrentState();
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (isDrawing && straightLineAssist && e.changedTouches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.changedTouches[0];
+                const finalX = (touch.clientX - rect.left - panX) / scale;
+                const finalY = (touch.clientY - rect.top - panY) / scale;
+
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(scale, scale);
+                
+                redrawCanvasCurrentState();
+                
+                ctx.beginPath();
+                ctx.moveTo(strokeStartX, strokeStartY);
+                ctx.lineTo(finalX, finalY);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            isDrawing = false;
+            if (e.touches.length < 2) {
+                isPanning = false;
+            }
+        }
+
+        function promptClearCanvas() {
+            showConfirmModal("정말로 필기를 전체 삭제하시겠습니까?", () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                showToast("캔버스가 깨끗이 비워졌습니다.");
+            });
+        }
+
+        function saveCanvas() {
+            const dataUrl = canvas.toDataURL("image/png");
+            const isCanvasBlank = isCanvasEmpty();
+            const imageToSave = isCanvasBlank ? null : dataUrl;
+
+            savePlannerData(selectedDateStr, { canvasImage: imageToSave }).then(() => {
+                showToast("드로잉 필기본이 데이터베이스에 안착되었습니다.");
+            });
+        }
+
+        function isCanvasEmpty() {
+            const buffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+            return !buffer.some(color => color !== 0);
+        }
+
+        function loadCanvasImage(dataUrl) {
+            const loader = document.getElementById("canvasLoader");
+            loader.classList.remove("hidden");
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (dataUrl) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.save();
+                    ctx.translate(panX, panY);
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, 0, 0);
+                    ctx.restore();
+                    loader.classList.add("hidden");
+                };
+                img.src = dataUrl;
+            } else {
+                setTimeout(() => {
+                    loader.classList.add("hidden");
+                }, 200);
+            }
+        }
+
+        function downloadHandwriting() {
+            const exportCanvas = document.createElement("canvas");
+            exportCanvas.width = canvas.width;
+            exportCanvas.height = canvas.height;
+            const exportCtx = exportCanvas.getContext("2d");
+
+            const isDark = document.documentElement.classList.contains("dark");
+            exportCtx.fillStyle = isDark ? "#0f172a" : "#ffffff";
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            if (currentTemplate !== 'none') {
+                exportCtx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)";
+                exportCtx.lineWidth = 1;
+                
+                if (currentTemplate === 'grid') {
+                    const step = 24;
+                    for (let x = 0; x < exportCanvas.width; x += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(x, 0); exportCtx.lineTo(x, exportCanvas.height); exportCtx.stroke();
+                    }
+                    for (let y = 0; y < exportCanvas.height; y += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
+                    }
+                } else if (currentTemplate === 'line') {
+                    const step = 28;
+                    for (let y = step; y < exportCanvas.height; y += step) {
+                        exportCtx.beginPath(); exportCtx.moveTo(0, y); exportCtx.lineTo(exportCanvas.width, y); exportCtx.stroke();
+                    }
+                } else if (currentTemplate === 'dot') {
+                    const step = 20;
+                    exportCtx.fillStyle = isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
+                    for (let x = step; x < exportCanvas.width; x += step) {
+                        for (let y = step; y < exportCanvas.height; y += step) {
+                            exportCtx.beginPath();
+                            exportCtx.arc(x, y, 1.2, 0, Math.PI * 2);
+                            exportCtx.fill();
+                        }
+                    }
+                }
+            }
+
+            exportCtx.drawImage(canvas, 0, 0);
+
+            const link = document.createElement("a");
+            link.download = `TabPlanner_Drawing_${selectedDateStr}.png`;
+            link.href = exportCanvas.toDataURL("image/png");
+            link.click();
+            showToast("필기지가 성공적으로 추출되었습니다.");
+        }
+
+        // --- 20. 탭 변경 비즈니스 로직 ---
+        function switchTab(tabId) {
+            activeTab = tabId;
+            
+            const tabs = ["todo", "work", "habit", "mood", "meeting", "note", "pencil", "ai", "dashboard"];
+            tabs.forEach(t => {
+                const tabBtn = document.getElementById(`tab-${t}`);
+                const tabContent = document.getElementById(`content-${t}`);
+                
+                if (t === tabId) {
+                    tabBtn.className = "py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabContent.classList.remove("hidden");
+                    tabContent.classList.add("block");
+                } else {
+                    tabBtn.className = "py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabContent.classList.remove("block");
+                    tabContent.classList.add("hidden");
+                }
+            });
+
+            if (tabId === "pencil") {
+                setTimeout(() => {
+                    handleCanvasResize();
+                    getPlannerData(selectedDateStr).then(data => {
+                        loadCanvasImage(data ? data.canvasImage : null);
+                        if (currentTemplate !== 'none') changeCanvasTemplate(currentTemplate);
+                    });
+                }, 100);
+            } else if (tabId === "dashboard") {
+                renderDashboard();
+            }
+
+            // 모바일 및 세로 모드 상태에서 사용자가 탭을 바꿨을 때 자동으로 작업대 화면을 보여주도록 개선
+            if (window.innerWidth < 1024) {
+                togglePortraitView('workspace');
+            }
+        }
+
+        // --- 21. 외부 데이터 백업 및 데이터 초기화 연동 ---
+        function exportData() {
+            if (!db) return;
+            const transaction = db.transaction(["plannerStore"], "readonly");
+            const store = transaction.objectStore("plannerStore");
+            const request = store.getAll();
+
+            request.onsuccess = function(e) {
+                const allData = e.target.result;
+                const dataStr = JSON.stringify(allData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `TabPlanner_Pro_Backup_${formatDate(new Date())}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                showToast("데이터 백업 파일 다운로드가 완료되었습니다.");
+            };
+        }
+
+        function triggerImport() {
+            document.getElementById("importFile").click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedList = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedList)) {
+                        throw new Error("유효하지 않은 파일 포맷");
+                    }
+
+                    const transaction = db.transaction(["plannerStore"], "readwrite");
+                    const store = transaction.objectStore("plannerStore");
+
+                    importedList.forEach(item => {
+                        if (item.date) {
+                            store.put(item);
+                        }
+                    });
+
+                    transaction.oncomplete = function() {
+                        showToast("성공적으로 데이터를 복원했습니다!");
+                        renderCalendar();
+                        loadSelectedDateData();
+                    };
+                    
+                } catch (err) {
+                    showToast("오류: 올바른 백업 JSON 파일이 아닙니다.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function promptClearAllData() {
+            showConfirmModal("정말로 전체 일기, 습관, 금일 작업사항, 플래너 데이터를 완전히 지우시겠습니까? 영구 소실되어 되돌릴 수 없습니다.", () => {
+                const transaction = db.transaction(["plannerStore"], "readwrite");
+                const store = transaction.objectStore("plannerStore");
+                const request = store.clear();
+
+                request.onsuccess = function() {
+                    showToast("모든 데이터가 완벽히 소거되었습니다.");
+                    renderCalendar();
+                    loadSelectedDateData();
+                };
+            });
+        }
+    </script>
+</body>
+</html>

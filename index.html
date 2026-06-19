@@ -9,6 +9,48 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* 모바일/태블릿 브라우저 주소창 등으로 인한 100vh 오차 보정 (잘림 방지 핵심) */
+        html, body {
+            height: 100vh;
+            height: 100dvh;
+        }
+        body.min-h-screen {
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        #calendarSidebar {
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+        #tabMenuBar {
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+        }
+        #tabMenuBar::-webkit-scrollbar {
+            height: 4px;
+        }
+        #tabMenuBar::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 116, 139, 0.35);
+            border-radius: 4px;
+        }
+        .todo-filter-btn {
+            background-color: #f1f5f9;
+            color: #64748b;
+        }
+        .todo-filter-btn.active {
+            background-color: #4f46e5;
+            color: #fff;
+        }
+        .dark .todo-filter-btn {
+            background-color: #1e293b;
+            color: #94a3b8;
+        }
+        .dark .todo-filter-btn.active {
+            background-color: #6366f1;
+            color: #fff;
+        }
         /* 터치 스크롤 방지 및 스타일러스 펜 최적화 */
         .canvas-container {
             touch-action: none;
@@ -101,6 +143,18 @@
                 background: white !important;
                 color: black !important;
             }
+            body.printing-report #content-dashboard,
+            body.printing-report #content-dashboard * {
+                visibility: visible;
+            }
+            body.printing-report #content-dashboard {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+            }
             .print-hidden {
                 display: none !important;
             }
@@ -109,7 +163,17 @@
     <script>
         // Tailwind Dark Mode 설정 확장
         tailwind.config = {
-            darkMode: 'class'
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    screens: {
+                        // Lenovo Tab Y700 (2200x1400, ~298ppi) 기준 최적화:
+                        // 가로(landscape) 논리 해상도 ≈ 1100px, 세로(portrait) ≈ 700px
+                        'md': '640px',
+                        'lg': '900px'
+                    }
+                }
+            }
         }
     </script>
 </head>
@@ -172,7 +236,7 @@
         <div id="sidebarBackdrop" onclick="closeSidebar()" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 hidden lg:hidden transition-all duration-300 opacity-0"></div>
 
         <!-- 왼쪽: 캘린더 영역 (세로모드 릴레이션 적용) -->
-        <section id="calendarSidebar" class="w-full lg:w-[420px] xl:w-[460px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 sm:p-5 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out">
+        <section id="calendarSidebar" class="w-full lg:w-[380px] xl:w-[420px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-3 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out">
             
             <!-- 세로 모드 시 상단에 표시되는 닫기 어시스트 바 -->
             <div class="flex items-center justify-between lg:hidden mb-4 border-b border-slate-100 dark:border-slate-800 pb-2.5">
@@ -183,7 +247,7 @@
             </div>
 
             <!-- 전체 기록 실시간 통합 검색창 -->
-            <div class="mb-4 relative">
+            <div class="mb-2 relative">
                 <input type="text" id="globalSearchInput" oninput="debounceSearch()" placeholder="메모, 회의록, 업무, 일기 통합 스캔..." class="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 transition">
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3"></i>
                 <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -203,7 +267,7 @@
             </div>
 
             <!-- 년/월 제어 및 오늘 이동 -->
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                     <button onclick="prevMonth()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
                         <i data-lucide="chevron-left" class="w-5 h-5"></i>
@@ -219,7 +283,7 @@
             </div>
 
             <!-- 요일 헤더 -->
-            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1">
                 <div class="text-rose-500">일</div>
                 <div>월</div>
                 <div>화</div>
@@ -230,12 +294,12 @@
             </div>
 
             <!-- 캘린더 그리드 -->
-            <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 flex-1 min-h-[280px]">
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1">
                 <!-- JS에서 일별 템플릿 생성 삽입 예정 -->
             </div>
 
             <!-- 현 날짜 상세 인디케이터 및 컬러 태그 지정 -->
-            <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-white" id="selectedDateLabel">2026년 06월 17일</h3>
@@ -285,40 +349,40 @@
         <section class="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950">
             
             <!-- 작업용 카테고리 탭 리스트 -->
-            <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex overflow-x-auto gap-4 shrink-0">
-                <button onclick="switchTab('todo')" id="tab-todo" class="py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+            <div id="tabMenuBar" class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex overflow-x-auto gap-4 shrink-0">
+                <button onclick="switchTab('todo')" id="tab-todo" class="shrink-0 py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="check-square" class="w-4 h-4"></i>
                     할 일
                 </button>
-                <button onclick="switchTab('work')" id="tab-work" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('work')" id="tab-work" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="briefcase" class="w-4 h-4 text-blue-500"></i>
                     금일 작업사항
                 </button>
-                <button onclick="switchTab('habit')" id="tab-habit" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('habit')" id="tab-habit" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="award" class="w-4 h-4 text-amber-500"></i>
                     습관 트래커
                 </button>
-                <button onclick="switchTab('mood')" id="tab-mood" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('mood')" id="tab-mood" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="smile" class="w-4 h-4 text-emerald-500"></i>
                     감정 & 일기
                 </button>
-                <button onclick="switchTab('meeting')" id="tab-meeting" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('meeting')" id="tab-meeting" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="users" class="w-4 h-4"></i>
                     회의록 / 녹음
                 </button>
-                <button onclick="switchTab('note')" id="tab-note" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('note')" id="tab-note" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
                     텍스트 메모
                 </button>
-                <button onclick="switchTab('pencil')" id="tab-pencil" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('pencil')" id="tab-pencil" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="pen-tool" class="w-4 h-4"></i>
                     펜슬 드로잉
                 </button>
-                <button onclick="switchTab('ai')" id="tab-ai" class="py-3 px-1 border-b-2 border-transparent text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('ai')" id="tab-ai" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i>
                     AI 어시스턴트
                 </button>
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all">
                     <i data-lucide="bar-chart-3" class="w-4 h-4 text-rose-500"></i>
                     통계 대시보드
                 </button>
@@ -346,12 +410,40 @@
                                 <i data-lucide="plus" class="w-4 h-4"></i> 추가
                             </button>
                         </div>
+
+                        <!-- 카테고리 / 반복 설정 -->
+                        <div class="flex gap-2 mt-2">
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 shrink-0">
+                                <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <select id="todoCategory" class="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none py-1.5">
+                                    <option value="general">일반</option>
+                                    <option value="work">업무</option>
+                                    <option value="personal">개인</option>
+                                    <option value="urgent">긴급</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 shrink-0">
+                                <i data-lucide="repeat" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <select id="todoRepeat" class="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none py-1.5">
+                                    <option value="none">반복 없음</option>
+                                    <option value="daily">매일 반복 (30일)</option>
+                                    <option value="weekly">매주 반복 (8주)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
+                        <div class="flex justify-between items-center mb-3">
                             <h2 class="text-base font-bold text-slate-800 dark:text-white">할 일 목록</h2>
                             <span id="todoProgress" class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">0개 완료됨</span>
+                        </div>
+                        <div id="todoFilterBar" class="flex gap-1.5 mb-3 flex-wrap">
+                            <button onclick="setTodoFilter('all')" data-filter="all" class="todo-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full transition">전체</button>
+                            <button onclick="setTodoFilter('general')" data-filter="general" class="todo-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full transition">일반</button>
+                            <button onclick="setTodoFilter('work')" data-filter="work" class="todo-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full transition">업무</button>
+                            <button onclick="setTodoFilter('personal')" data-filter="personal" class="todo-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full transition">개인</button>
+                            <button onclick="setTodoFilter('urgent')" data-filter="urgent" class="todo-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full transition">긴급</button>
                         </div>
                         <ul id="todoList" class="divide-y divide-slate-100 dark:divide-slate-800">
                             <!-- 할 일 항목 To-Do 리스트 주입구 -->
@@ -886,9 +978,20 @@
                                 </h2>
                                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">지정한 달력 연월을 스캔하여 일기 감정 상태, 습관 지속 점수, 업무 완수 성과를 지표로 시각화합니다.</p>
                             </div>
-                            <button onclick="renderDashboard()" class="px-3.5 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
-                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> 데이터 새로고침
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button onclick="renderDashboard()" class="px-3.5 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> 데이터 새로고침
+                                </button>
+                                <button onclick="printDashboardReport()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> 월간 리포트 출력
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 인쇄 시에만 나타나는 리포트 헤더 -->
+                        <div class="hidden print:block border-b-2 border-slate-800 pb-4 mb-2">
+                            <h1 class="text-2xl font-bold text-slate-900">월간 종합 리포트 (TabPlanner)</h1>
+                            <p class="text-sm text-slate-500 mt-1" id="reportPrintDateLabel">대상 월: -</p>
                         </div>
 
                         <!-- 깃허브 잔디 스타일 월간 감정 트랙 히트맵 배치 -->
@@ -917,7 +1020,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <!-- A. 습관 분석 현황 보드 -->
                             <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 flex flex-col justify-between">
                                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -990,6 +1093,19 @@
                                 </div>
                                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
                                     💡 팁: '금일 작업사항' 및 '할 일'에 등록된 계획을 충실히 매듭지어 체크할수록 완료 곡선 점수가 비약적으로 차오릅니다.
+                                </div>
+                            </div>
+
+                            <!-- D. 습관-기분 상관관계 분석 보드 -->
+                            <div class="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 md:col-span-3">
+                                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <i data-lucide="git-compare-arrows" class="w-4 h-4 text-purple-500"></i> 습관-기분 상관관계
+                                </h3>
+                                <p class="text-[10px] text-slate-400 dark:text-slate-500">
+                                    해당 습관을 실천한 날과 실천하지 않은 날의 평균 기분 점수(1~5점)를 비교합니다. 양수(+)일수록 습관 실천일에 기분이 더 좋았다는 뜻입니다.
+                                </p>
+                                <div id="dashHabitMoodList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs pt-1">
+                                    <!-- 습관별 기분 상관관계 주입구 -->
                                 </div>
                             </div>
                         </div>
@@ -1240,7 +1356,7 @@
             const sidebar = document.getElementById("calendarSidebar");
             const backdrop = document.getElementById("sidebarBackdrop");
             
-            const isLgDesktop = window.innerWidth >= 1024;
+            const isLgDesktop = window.innerWidth >= 900; // Y700 태블릿 가로모드(~1100px) 대응
 
             if (isLgDesktop) {
                 // 데스크톱 가로 모드: 달력 영역 접기/열기 애니메이션
@@ -1395,7 +1511,7 @@
                 }
             }
 
-            cell.className = `min-h-[60px] p-1.5 rounded-xl flex flex-col justify-between items-start transition-all relative border ${tagBorderClass} ${
+            cell.className = `min-h-[32px] lg:min-h-[30px] p-1 rounded-lg flex flex-col justify-between items-start transition-all relative border ${tagBorderClass} ${
                 isCurrentMonth ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20" : "bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 pointer-events-none"
             } ${
                 isSelected ? "ring-2 ring-indigo-600 dark:ring-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20" : ""
@@ -1483,7 +1599,7 @@
             loadSelectedDateData();
 
             // 세로 모드라면 날짜 선택 후 달력 자동 닫기
-            if (window.innerWidth < 1024) {
+            if (window.innerWidth < 900) { // Y700 태블릿 세로모드(~700px) 대응
                 closeSidebar();
             }
         }
@@ -1908,10 +2024,39 @@
         }
 
         // --- 7. 세부 기능 구현: 할 일 리스트 (To-do) ---
+        let currentTodoFilter = "all";
+
+        function setTodoFilter(filter) {
+            currentTodoFilter = filter;
+            document.querySelectorAll(".todo-filter-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.filter === filter);
+            });
+            getPlannerData(selectedDateStr).then(data => {
+                renderTodoList(data ? (data.todos || []) : []);
+            });
+        }
+
+        const TODO_CATEGORY_META = {
+            general: { label: "일반", cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
+            work: { label: "업무", cls: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400" },
+            personal: { label: "개인", cls: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" },
+            urgent: { label: "긴급", cls: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400" }
+        };
+
         function renderTodoList(todos) {
             const listContainer = document.getElementById("todoList");
             const emptyState = document.getElementById("todoEmptyState");
             listContainer.innerHTML = "";
+
+            // 필터 버튼 활성 상태 동기화 (최초 렌더 시에도 표시되도록)
+            document.querySelectorAll(".todo-filter-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.filter === currentTodoFilter);
+            });
+
+            const indexedTodos = todos.map((t, idx) => ({ t, idx }));
+            const visibleTodos = currentTodoFilter === "all"
+                ? indexedTodos
+                : indexedTodos.filter(o => (o.t.category || "general") === currentTodoFilter);
 
             if (todos.length === 0) {
                 emptyState.classList.remove("hidden");
@@ -1923,7 +2068,12 @@
             const completed = todos.filter(t => t.done).length;
             document.getElementById("todoProgress").innerText = `완료 ${completed} / 전체 ${todos.length}`;
 
-            todos.forEach((todo, idx) => {
+            if (visibleTodos.length === 0) {
+                listContainer.innerHTML = `<li class="py-8 text-center text-slate-400 text-xs">해당 카테고리의 할 일이 없습니다.</li>`;
+                return;
+            }
+
+            visibleTodos.forEach(({ t: todo, idx }) => {
                 const li = document.createElement("li");
                 li.className = "flex items-center justify-between py-3.5 group";
                 
@@ -1938,6 +2088,19 @@
                     `;
                 }
 
+                const catMeta = TODO_CATEGORY_META[todo.category || "general"];
+                const categoryBadge = `<span class="px-1.5 py-0.5 text-[10px] font-bold rounded ${catMeta.cls}">${catMeta.label}</span>`;
+
+                let repeatBadge = "";
+                if (todo.repeat && todo.repeat !== "none") {
+                    repeatBadge = `
+                        <span class="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+                            <i data-lucide="repeat" class="w-3 h-3"></i>
+                            ${todo.repeat === "daily" ? "매일" : "매주"}
+                        </span>
+                    `;
+                }
+
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
                         <button onclick="toggleTodo(${idx})" class="w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
@@ -1947,7 +2110,9 @@
                         </button>
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-sm font-medium ${todo.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}">${todo.text}</span>
+                            ${categoryBadge}
                             ${reminderBadge}
+                            ${repeatBadge}
                         </div>
                     </div>
                     <button onclick="deleteTodo(${idx})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
@@ -1963,6 +2128,8 @@
             const input = document.getElementById("todoInput");
             const text = input.value.trim();
             const reminderTime = document.getElementById("todoReminderTime").value;
+            const category = document.getElementById("todoCategory").value;
+            const repeat = document.getElementById("todoRepeat").value;
 
             if (!text) return;
 
@@ -1974,16 +2141,56 @@
                     text: text, 
                     done: false, 
                     reminderTime: reminderTime || null,
-                    reminderTriggered: false 
+                    reminderTriggered: false,
+                    category: category || "general",
+                    repeat: repeat || "none"
                 });
                 
                 savePlannerData(selectedDateStr, { todos: todos }).then(() => {
+                    if (repeat && repeat !== "none") {
+                        propagateRepeatingTodo(selectedDateStr, text, category, repeat);
+                    }
                     input.value = "";
                     document.getElementById("todoReminderTime").value = "";
                     loadSelectedDateData();
-                    showToast("할 일이 추가되었습니다.");
+                    showToast(repeat && repeat !== "none" ? "반복 할 일이 추가되었습니다." : "할 일이 추가되었습니다.");
                 });
             });
+        }
+
+        // --- 반복 할 일을 미래 날짜에 자동으로 복제 생성 ---
+        function propagateRepeatingTodo(startDateStr, text, category, repeat) {
+            const baseDate = parseDateSafe(startDateStr);
+            const futureDates = [];
+
+            if (repeat === "daily") {
+                for (let i = 1; i <= 30; i++) {
+                    const d = new Date(baseDate);
+                    d.setDate(d.getDate() + i);
+                    futureDates.push(formatDate(d));
+                }
+            } else if (repeat === "weekly") {
+                for (let i = 1; i <= 8; i++) {
+                    const d = new Date(baseDate);
+                    d.setDate(d.getDate() + (i * 7));
+                    futureDates.push(formatDate(d));
+                }
+            }
+
+            futureDates.reduce((chain, dateStr) => {
+                return chain.then(() => getPlannerData(dateStr)).then(data => {
+                    const todos = data ? (data.todos || []) : [];
+                    todos.push({
+                        text: text,
+                        done: false,
+                        reminderTime: null,
+                        reminderTriggered: false,
+                        category: category || "general",
+                        repeat: repeat
+                    });
+                    return savePlannerData(dateStr, { todos: todos });
+                });
+            }, Promise.resolve());
         }
 
         function toggleTodo(idx) {
@@ -3254,6 +3461,9 @@
                 let habitRates = {}; 
                 globalHabits.forEach(h => { habitRates[h] = { done: 0, total: 0 }; });
 
+                const moodScoreMap = { excellent: 5, good: 4, neutral: 3, bad: 2, terrible: 1 };
+                const dailyRecords = []; // 습관-기분 상관관계 계산용 일별 레코드 캐시
+
                 request.onsuccess = function(e) {
                     const cursor = e.target.result;
                     if (cursor) {
@@ -3272,6 +3482,11 @@
                             const dayNum = parseInt(val.date.split('-')[2]);
                             heatmapDayData[dayNum] = val.mood;
                         }
+
+                        dailyRecords.push({
+                            mood: val.mood || null,
+                            habitChecks: val.habitChecks || {}
+                        });
 
                         if (globalHabits.length > 0) {
                             globalHabits.forEach(h => {
@@ -3351,11 +3566,64 @@
                                 listContainer.appendChild(barDiv);
                             });
                         }
+
+                        // --- 습관-기분 상관관계 계산 및 렌더링 ---
+                        const corrContainer = document.getElementById("dashHabitMoodList");
+                        if (corrContainer) {
+                            corrContainer.innerHTML = "";
+                            if (globalHabits.length === 0) {
+                                corrContainer.innerHTML = `<div class="text-slate-400 text-center py-2 text-xs font-semibold md:col-span-2">등록된 습관이 없습니다.</div>`;
+                            } else {
+                                const recordsWithMood = dailyRecords.filter(r => r.mood && moodScoreMap[r.mood]);
+                                if (recordsWithMood.length < 2) {
+                                    corrContainer.innerHTML = `<div class="text-slate-400 text-center py-2 text-xs font-semibold md:col-span-2">분석할 기분 기록이 부족합니다. (최소 2일 이상 필요)</div>`;
+                                } else {
+                                    globalHabits.forEach(h => {
+                                        const doneDays = recordsWithMood.filter(r => r.habitChecks[h]);
+                                        const notDoneDays = recordsWithMood.filter(r => !r.habitChecks[h]);
+                                        const avg = arr => arr.length > 0 ? arr.reduce((s, r) => s + moodScoreMap[r.mood], 0) / arr.length : null;
+                                        const avgDone = avg(doneDays);
+                                        const avgNotDone = avg(notDoneDays);
+
+                                        const row = document.createElement("div");
+                                        row.className = "flex items-center justify-between gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-800";
+
+                                        if (avgDone === null || avgNotDone === null) {
+                                            row.innerHTML = `
+                                                <span class="truncate max-w-[140px] font-semibold text-slate-600 dark:text-slate-300">${h}</span>
+                                                <span class="text-[10px] text-slate-400 font-bold">비교 데이터 부족</span>
+                                            `;
+                                        } else {
+                                            const diff = Math.round((avgDone - avgNotDone) * 10) / 10;
+                                            const diffColor = diff > 0 ? "text-emerald-600 dark:text-emerald-400" : (diff < 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-400");
+                                            const diffSign = diff > 0 ? "+" : "";
+                                            row.innerHTML = `
+                                                <span class="truncate max-w-[140px] font-semibold text-slate-600 dark:text-slate-300">${h}</span>
+                                                <span class="text-[10px] text-slate-400">실천일 ${avgDone.toFixed(1)}점 / 미실천일 ${avgNotDone.toFixed(1)}점</span>
+                                                <span class="text-xs font-black ${diffColor}">${diffSign}${diff}</span>
+                                            `;
+                                        }
+                                        corrContainer.appendChild(row);
+                                    });
+                                }
+                            }
+                        }
                     }
                 };
             } catch (e) {
                 console.error("대시보드 통계 계산 중 에러: ", e);
             }
+        }
+
+        // 대시보드 월간 종합 리포트 인쇄
+        function printDashboardReport() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            document.getElementById("reportPrintDateLabel").innerText = `대상 월: ${year}년 ${month}월`;
+            document.body.classList.add("printing-report");
+            const cleanup = () => document.body.classList.remove("printing-report");
+            window.addEventListener("afterprint", cleanup, { once: true });
+            window.print();
         }
 
         // 대시보드 깃허브 스타일 감정 잔디밭 히트맵 그리기
@@ -3423,11 +3691,11 @@
                 const tabContent = document.getElementById(`content-${t}`);
                 
                 if (t === tabId) {
-                    tabBtn.className = "py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabBtn.className = "shrink-0 py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 font-semibold text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
                     tabContent.classList.remove("hidden");
                     tabContent.classList.add("block");
                 } else {
-                    tabBtn.className = "py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
+                    tabBtn.className = "shrink-0 py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap transition-all";
                     tabContent.classList.remove("block");
                     tabContent.classList.add("hidden");
                 }
